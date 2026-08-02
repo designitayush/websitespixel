@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="17 16.5 146 146.5">
+  <defs>
+    <mask id="wp-knockout">
+      <rect x="24" y="23.5" width="129" height="132.5" rx="28" fill="#fff"/>
+      <path d="M28 74.5 L45 74.5 L47.5 128 L50 74.5 L82 74.5 L84.5 128 L87 74.5 L100 74.5 L85 156 L77 156 L64 92 L51 156 L43 156 Z" fill="#000"/>
+      <rect x="103" y="74.5" width="21" height="81.5" fill="#000"/>
+      <ellipse cx="145" cy="115" rx="27" ry="34" fill="#000"/>
+    </mask>
+  </defs>
+  <rect x="24" y="23.5" width="129" height="132.5" rx="28" fill="#fff" mask="url(#wp-knockout)"/>
+  <ellipse cx="142" cy="117" rx="10.5" ry="14" fill="#fff"/>
+</svg>
