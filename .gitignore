@@ -1,14 +1,1 @@
-# Legacy Charle clone reference files (not part of the WebsitesPixel site,
-# contain third-party copyrighted content - do not publish)
-about.html
-ai.html
-contact.html
-services.html
-work.html
-partials/
-build.py
-styles.css
-app.js
-
-# System files
 .DS_Store

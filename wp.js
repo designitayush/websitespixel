@@ -1,6 +1,6 @@
 /* ============================================================
    WebsitesPixel — interactions & motion
-   GSAP + ScrollTrigger + Lenis (all vendored locally).
+   GSAP + ScrollTrigger, vendored locally. Native scroll, no libraries.
    Everything degrades: reduced motion gets a static, instant page.
    ============================================================ */
 (function () {
@@ -40,7 +40,7 @@
     if (typeof gsap === 'undefined') { revealAllFallback(); return; }
     gsap.registerPlugin(ScrollTrigger);
 
-    /* ---------- Native scroll (Charle model: no smooth-scroll library) ---------- */
+    /* ---------- Native scroll (no smooth-scroll library) ---------- */
     var lenis = null;
 
     function scrollToTarget(target) {
@@ -63,8 +63,8 @@
       });
     });
 
-    /* No preloader, no entrance reveals, no split-text intro (Charle model:
-       the page paints instantly; the motion budget lives in the set-piece). */
+    /* No preloader, no entrance reveals, no split-text intro:
+       the page paints instantly; the motion budget lives in the set-piece. */
 
     /* ---------- Nav: hide on scroll down ---------- */
     var nav = document.getElementById('nav');
@@ -100,8 +100,8 @@
       });
     }
 
-    /* No pointer parallax, no particle canvas (Charle model: atmosphere is
-       static blurred blooms; the system cursor and native scroll do the rest). */
+    /* No pointer parallax, no particle canvas: atmosphere is static
+       blurred blooms; the system cursor and native scroll do the rest. */
 
     /* ---------- Showcase reel ---------- */
     var stage = document.getElementById('store-stage');

@@ -6,33 +6,13 @@
    Type: Geist (300-700 variable) + Geist Mono for numerals.
    ============================================================ */
 
+/* All fonts are free, open-source (SIL OFL) and self-hosted: no licensing owed. */
 @font-face {
-  font-family: 'Season Sans';
+  font-family: 'Source Serif 4';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 400 500;
   font-display: swap;
-  src: url('fonts/SeasonSans-Regular.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Season Sans';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('fonts/SeasonSans-Medium.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Season Serif';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('fonts/SeasonSerif-Regular.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Season Serif';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('fonts/SeasonSerif-Medium.woff2') format('woff2');
+  src: url('fonts/source-serif-4-latin.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Geist';
@@ -64,8 +44,8 @@
   --accent-ink: #06231a;
   --r-card: 15px;
   --r-media: 12px;
-  --font: 'Season Sans', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --serif: 'Season Serif', Georgia, 'Times New Roman', serif;
+  --font: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
   --mono: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --nav-h: 64px;
@@ -174,7 +154,7 @@ em { font-style: normal; }
 
 .btn-lg { height: 56px; padding: 0 1.9rem; font-size: 1rem; }
 
-/* (Preloader removed — the page paints instantly, Charle model.) */
+/* (Preloader removed — the page paints instantly, reference model.) */
 
 /* ============ Navigation ============ */
 
@@ -993,8 +973,8 @@ em { font-style: normal; }
 
 /* ============ Reveal states (JS-gated) ============ */
 
-/* Entrance reveals removed: content renders instantly (Charle model — the
-   motion budget lives in the hero set-piece, not in per-section reveals). */
+/* Entrance reveals removed: content renders instantly. The motion budget
+   lives in the hero set-piece, not in per-section reveals. */
 
 /* ============ Responsive ============ */
 
@@ -1085,10 +1065,10 @@ em { font-style: normal; }
 }
 
 /* ============================================================
-   Charle-look refit: Season type, full-width nav, centered hero
+   reference-look refit: Season type, full-width nav, centered hero
    ============================================================ */
 
-/* Season Sans ships 400/500 only; display weights drop to 500 to avoid faux-bold */
+/* Display weights sit at 500 for a soft, premium grotesk feel */
 .h2, .cta-title, .bento-card h3, .why-item h3, .p-step h3, .m-title,
 .menu-links a, .voice figcaption b, .oc-meta b, .footer-col h4,
 .preloader-word, .footer-watermark { font-weight: 500; }
@@ -1096,7 +1076,7 @@ em { font-style: normal; }
 .nav-logo { font-weight: 500; font-size: 1.42rem; letter-spacing: -0.01em; }
 .logo-dot { color: var(--accent); }
 
-/* Nav: full-width Charle-style bar */
+/* Nav: full-width bar */
 .nav { top: 0; }
 .nav-pill {
   width: 100%; max-width: none; height: auto;
@@ -1280,13 +1260,13 @@ em { font-style: normal; }
 .p-step:hover .p-chips li { border-color: var(--border-strong); color: var(--text); }
 
 /* ============================================================
-   CHARLE SYSTEM LAYER
+   WEBSITESPIXEL MOTION SYSTEM
    Native CSS scroll-driven hero set-piece, bloom atmosphere,
-   white hard-cut sections, Charle button grammar.
+   white hard-cut sections, Button grammar.
    ============================================================ */
 
 :root {
-  /* linear() approximations of GSAP power easings (Charle technique) */
+  /* linear() approximations of GSAP power easings for CSS scroll timelines */
   --power1-out: linear(0, 0.0862 6.25%, 0.2852 18.75%, 0.535 37.5%, 0.71 50%, 0.875 68.75%, 0.9297 78%, 0.9687 87.5%, 1);
   --power2-out: linear(0, 0.0036 5%, 0.1234 16%, 0.319 28%, 0.5432 40%, 0.7345 53%, 0.8621 66%, 0.9573 79%, 0.9865 88%, 1);
   --power3-out: linear(0, 0.0029 8%, 0.1815 22%, 0.4599 36%, 0.6816 49%, 0.8495 63%, 0.9518 77%, 0.9876 87%, 1);
@@ -1386,7 +1366,7 @@ em { font-style: normal; }
   .sc-tile.l3 { animation-name: sc-reveal-3, sc-fade-3; animation-timing-function: var(--power1-out), var(--power1-out); }
 }
 
-/* The Charle holds: media waits 10%, tiles scale from ~30%, fade from ~55% */
+/* The holds: media waits 10%, tiles scale from ~30%, fade from ~55% */
 @keyframes sc-shrink {
   0%, 10% { transform: scale(1); border-radius: 22px; }
   100% { transform: scale(0.19); border-radius: 84px; }
@@ -1412,7 +1392,7 @@ em { font-style: normal; }
   }
 }
 
-/* ---------- White hard-cut block (Charle's boldest move) ---------- */
+/* ---------- White hard-cut block ---------- */
 .proof { background: #ffffff; color: #0a0a0a; }
 .proof .stat dd { color: #0a0a0a; }
 .proof .stat dt { color: rgba(0, 0, 0, 0.55); }
@@ -1427,7 +1407,7 @@ em { font-style: normal; }
 .orbit-card { background: #f3f3f3; border-color: rgba(0, 0, 0, 0.08); }
 .orbit-card:hover { border-color: rgba(0, 0, 0, 0.18); box-shadow: 0 30px 80px -24px rgba(0, 0, 0, 0.3); }
 
-/* Services slides back over the white block (35px overlap, Charle device) */
+/* Services slides back over the white block (35px overlap) */
 .services {
   position: relative; z-index: 2;
   background: var(--bg);
@@ -1440,7 +1420,7 @@ em { font-style: normal; }
 
 .why { background: var(--bg-2); }
 
-/* ---------- Charle button grammar ---------- */
+/* ---------- Button grammar ---------- */
 .btn { transition: all 0.5s var(--ease-standard); }
 .btn:hover { opacity: 0.85; }
 .btn-primary:hover { background: var(--text); transform: none; box-shadow: none; }
@@ -1463,7 +1443,7 @@ em { font-style: normal; }
 
 .footer { background: #0a0a0a; }
 
-/* ---------- Final Charle signatures ---------- */
+/* ---------- Signature typographic moments ---------- */
 
 /* Hairline-ruled stats row on the white block */
 .proof .stats { border-top: 1px solid rgba(0, 0, 0, 0.1); padding-top: clamp(2rem, 4vw, 3rem); }

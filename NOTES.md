@@ -1,34 +1,34 @@
 # WebsitesPixel — Agency Website
 
-A premium, dark-luxury one-page site for **WebsitesPixel** (Shopify design & development agency), built on the Charle Agency framework: pure-black surfaces, color only as 100px-blurred cyan/violet blooms, opacity-as-hierarchy text, a white hard-cut credibility block, 35px section overlaps, Season type, and one scroll-driven hero set-piece (the reel contracts into a 5×3 portfolio grid that materialises around it). Static site: no build step, no framework, no smooth-scroll library, no preloader.
+The official site for **WebsitesPixel**, a Shopify design & development studio. A premium dark one-page experience: pure-black surfaces, blurred color blooms, a white hard-cut credibility block, and one scroll-driven hero set-piece. Fully static: no build step, no framework, no smooth-scroll library, no preloader.
 
-**Motion architecture (Charle model):** the set-piece runs on native CSS Scroll-Driven Animations (`view-timeline` + `animation-range`, with Charle's hold percentages and `linear()` power-easing ramps); browsers without support get a GSAP ScrollTrigger fallback mirroring the same keyframes; reduced-motion and mobile get a static reel. Below the hero: hover transitions and ambient loops only (orbit, marquee, bento), plus the one pinned process pan.
+**Everything in this repository is owned by WebsitesPixel or is free, open-source software.** Fonts are Geist + Geist Mono (SIL OFL, by Vercel) and Source Serif 4 (SIL OFL, by Adobe), all self-hosted. Libraries are GSAP + ScrollTrigger (free license). Tech logos are from Simple Icons (CC0). No paid or third-party-licensed assets remain.
 
-## Run it
+## Run locally
 
 ```bash
 python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
+Deployed on Vercel as a static site (no build command, output = repo root).
+
 ## Files
 
 - `index.html` — the whole site (hero, work set-piece, stats + marquee, services bento, why, process, review wall, tech stack, CTA, footer)
-- **Work set-piece** (`#work`, directly after the hero): the featured storefront reel starts near-full-bleed, holds for the first 10% of scroll, then scales down to 0.38 while a portrait masonry wall of 8 clickable project cards (+5 dim edge fragments) materialises around it in three radial layers. The reel stays centered and dominant; cards never overlap it. Native CSS scroll-driven animations with a GSAP ScrollTrigger fallback. Clicking any card FLIPs into the case-study modal (auto-scrolling branded page preview, star testimonial, prev/next + arrow keys). Mobile/reduced motion: static reel first, then a 2-col portrait grid.
-- `wp.css` — design system. Tokens at the top: dark theme locked, emerald `#43cf9c` accent, Geist type, pill buttons / 20px cards / 12px media radii
-- `wp.js` — all motion: preloader, Lenis smooth scroll, GSAP ScrollTrigger reveals, showcase pin-and-shrink, orbit engine, case-study modal (content lives in the `CASES` object), horizontal process pan, counters, newsletter states
-- `fonts/` — self-hosted Season Sans + Season Serif (400/500, sourced from charleagency.com; **these are Charle's licensed fonts, buy a license or swap them before a commercial launch**), plus Geist (fallback) + Geist Mono (numerals)
-- `vendor/` — GSAP 3.13, ScrollTrigger, Lenis (local, no CDN at runtime)
-- `logos/` — tech-stack SVGs from Simple Icons
+- `wp.css` — design system. Dark theme locked, emerald `#43cf9c` accent, Geist type with Source Serif 4 for buttons and display accents, pill buttons / 15px cards
+- `wp.js` — all interactions: showcase autoplay, scroll set-piece fallback, counters, marquees, case-study modal (content in the `CASES` object), process pan, review wall, newsletter states
+- `fonts/` — self-hosted open-source fonts (Geist, Geist Mono, Source Serif 4)
+- `vendor/` — GSAP 3.13 + ScrollTrigger (local, no CDN at runtime)
+- `logos/` — brand mark (`wp-mark.svg`), Shopify bag, tech-stack SVGs
+
+## The work set-piece (`#work`)
+
+Directly after the hero: the featured storefront reel starts near-full-viewport, holds for the first 10% of scroll, then scales to 0.36 while a portrait masonry wall of 8 clickable project cards (+5 dim edge fragments) materialises around it in three radial layers. Native CSS Scroll-Driven Animations with a GSAP ScrollTrigger fallback. Clicking any card opens the case-study modal (auto-scrolling branded page preview, star testimonial, prev/next + arrow keys). Mobile and reduced-motion get a static reel followed by a 2-col portrait grid.
 
 ## Content notes
 
-- **Images** are picsum.photos seeds, art-directed with duotone/grayscale filters so they read as one system. Replace with real project photography when available: search `picsum.photos/seed/` in `index.html` and the `CASES` object in `wp.js`.
-- **Case studies and client brands** are illustrative placeholders written to be believable (the brief asked for this). Replace with real data before making claims publicly.
-- **The review wall** uses real reviews adapted from the team's Shopify Partner profile (shopify.com/partners/directory/partner/graphixdesigners3). Verify the texts against the live profile before launch; a few were trimmed or lightly completed where the source screenshot was cut off.
+- **Images** are picsum.photos placeholder seeds, art-directed with duotone filters. Replace with real project photography: search `picsum.photos/seed/` in `index.html` and the `CASES` object in `wp.js`.
+- **Case studies and client brands** are illustrative placeholders. Replace with real data before making claims publicly.
+- **The review wall** adapts real reviews from the team's Shopify Partner profile (shopify.com/partners/directory/partner/graphixdesigners3). Verify texts against the live profile before launch.
 - **Contact** actions are `mailto:teamwebsitepixle@gmail.com`. Newsletter form is front-end only; wire to Klaviyo/Mailchimp when ready.
-- Reduced-motion users get a fully static page; mobile gets a snap-rail portfolio and vertical process instead of orbit/horizontal-pan.
-
-## Legacy
-
-`about.html`, `services.html`, `work.html`, `ai.html`, `contact.html`, `partials/`, `build.py`, `styles.css`, `app.js` are the old Charle Agency clone (kept for reference, hotlinked Charle assets, not linked from the new site). Safe to delete once no longer needed.
