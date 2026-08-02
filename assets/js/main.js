@@ -1,7 +1,18 @@
 /* ============================================================
-   WebsitesPixel — interactions & motion
-   GSAP + ScrollTrigger, vendored locally. Native scroll, no libraries.
-   Everything degrades: reduced motion gets a static, instant page.
+   WEBSITESPIXEL — interactions & motion (main.js)
+   ------------------------------------------------------------
+   Stack: vanilla JS + GSAP/ScrollTrigger (vendored in ./vendor).
+   Native scroll, no smooth-scroll library, no framework.
+
+   Contents
+     01 Boot & fail-safe          06 Set-piece fallback (no CSS
+     02 Native smooth anchors        scroll-timeline support)
+     03 Nav + mobile menu         07 Stat counters · marquee clones
+     04 Storefront reel           08 Case-study data + modal
+     05 Set-piece card clicks     09 Bento/process spotlight
+                                  10 Process pan · FAB · newsletter
+
+   Motion degrades fully: prefers-reduced-motion gets a static page.
    ============================================================ */
 (function () {
   'use strict';
@@ -465,16 +476,6 @@
           }
         }
       });
-    }
-
-    /* ---------- Testimonial rail buttons ---------- */
-    var rail = document.getElementById('voices-rail');
-    var prev = document.getElementById('voices-prev');
-    var next = document.getElementById('voices-next');
-    if (rail && prev && next) {
-      var step = function () { return Math.min(rail.clientWidth * 0.7, 640); };
-      prev.addEventListener('click', function () { rail.scrollBy({ left: -step(), behavior: reduced ? 'auto' : 'smooth' }); });
-      next.addEventListener('click', function () { rail.scrollBy({ left: step(), behavior: reduced ? 'auto' : 'smooth' }); });
     }
 
     /* ---------- FAB visibility ---------- */
