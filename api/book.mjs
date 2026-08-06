@@ -19,6 +19,9 @@
  *   BOOKING_MEETING_URL     standing video link    optional
  *   BOOKING_WEBHOOK_URL     durable sink           optional
  *   BOOKING_WEBHOOK_TOKEN   bearer token for sink  optional
+ *   AIRTABLE_TOKEN          records:write PAT      optional
+ *   AIRTABLE_BASE_ID        appXXXXXXXXXXXXXX      optional
+ *   AIRTABLE_BOOKINGS_TABLE table name             default Bookings
  */
 
 const TO = process.env.BOOKING_TO || 'teamwebsitespixel@gmail.com';
@@ -28,6 +31,18 @@ const MINUTES = Number(process.env.BOOKING_MINUTES) || 30;
 const MEETING_URL = process.env.BOOKING_MEETING_URL || '';
 const SINK = process.env.BOOKING_WEBHOOK_URL || '';
 const SINK_TOKEN = process.env.BOOKING_WEBHOOK_TOKEN || '';
+
+/* Airtable is the system of record. Email is a notification, not storage:
+   inboxes get archived, filtered and lost, and a lead you cannot query is
+   not a pipeline. Leave the two secrets unset and every call below turns
+   into a no-op, so the booking form keeps working either way.
+     AIRTABLE_TOKEN               personal access token, scope data.records:write
+     AIRTABLE_BASE_ID             looks like appXXXXXXXXXXXXXX
+     AIRTABLE_BOOKINGS_TABLE      defaults to Bookings
+*/
+const AT_TOKEN = process.env.AIRTABLE_TOKEN || '';
+const AT_BASE = process.env.AIRTABLE_BASE_ID || '';
+const AT_BOOKINGS = process.env.AIRTABLE_BOOKINGS_TABLE || 'Bookings';
 
 const BRAND = 'WebsitesPixel';
 const SITE = 'https://websitespixel.com';
@@ -250,9 +265,74 @@ async function send(payload) {
   return { ok: false, status: 502, detail: await res.text() };
 }
 
-/* The sink is the safety net: if it is configured the lead is durable even
-   when every mail hop fails. Never allowed to break the booking. */
+/* Airtable refuses a whole record when one column name does not exist, which
+   would mean losing a real lead over a typo in a table header. So read the
+   field it objected to, drop it, and try again. A saved booking with missing
+   columns beats a tidy schema and an empty base. */
+async function airtableCreate(table, fields) {
+  if (!AT_TOKEN || !AT_BASE) return { skipped: true };
+  const url = 'https://api.airtable.com/v0/' + encodeURIComponent(AT_BASE) +
+    '/' + encodeURIComponent(table);
+  const body = {};
+  Object.keys(fields).forEach((k) => {
+    if (fields[k] !== undefined && fields[k] !== null && fields[k] !== '') body[k] = fields[k];
+  });
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + AT_TOKEN,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ fields: body, typecast: true }),
+    });
+    if (res.ok) {
+      const json = await res.json().catch(() => ({}));
+      return { ok: true, id: json.id };
+    }
+    const detail = await res.text();
+    const missing = /Unknown field name: "([^"]+)"/.exec(detail);
+    if (missing && Object.prototype.hasOwnProperty.call(body, missing[1])) {
+      delete body[missing[1]];
+      continue;
+    }
+    return { ok: false, detail: res.status + ' ' + detail };
+  }
+  return { ok: false, detail: 'gave up after ten unknown columns' };
+}
+
+/* Runs before a single email is sent. If Resend, DNS or Gmail fall over
+   afterwards the lead is already sitting in Airtable, and neither sink is
+   ever allowed to throw and take the booking down with it. */
 async function persist(record) {
+  const slot = [record.date, record.time].filter(Boolean).join(' at ') +
+    (record.businessTimezone ? ' (' + record.businessTimezone + ')' : '');
+  const source = [record.utm, record.referrer, record.landing]
+    .filter(Boolean).join(' | ');
+
+  try {
+    const saved = await airtableCreate(AT_BOOKINGS, {
+      Reference: record.reference,
+      Name: record.name,
+      Email: record.email,
+      Phone: record.phone,
+      Company: record.company,
+      Website: record.website,
+      Service: record.service,
+      Project: record.project,
+      Slot: slot,
+      Start: record.startUtc,
+      'Client Timezone': record.clientTimezone,
+      Status: 'New',
+      Source: source,
+    });
+    if (saved && saved.ok === false) {
+      console.error('airtable booking rejected:', saved.detail);
+    }
+  } catch (err) {
+    console.error('airtable booking threw:', err && err.message);
+  }
+
   if (!SINK) return;
   try {
     const headers = { 'Content-Type': 'application/json' };
