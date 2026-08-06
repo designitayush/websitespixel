@@ -117,10 +117,14 @@
     /* ---------- Showcase reel ---------- */
     var stage = document.getElementById('store-stage');
     var media = document.getElementById('showcase-media');
-    if (stage) {
-      var slides = stage.querySelectorAll('.store-slide');
-      /* The stage now holds a looping video instead of slides. */
-      if (!slides.length) return;
+    var slides = stage ? stage.querySelectorAll('.store-slide') : [];
+    /* The stage holds a looping video now, so there are no slides to cycle.
+       A bare `return` used to sit here, which did not skip the reel: it left
+       main() outright and took every feature defined below it with it - the
+       case-study modal, the bento spotlight, the floating call button and
+       the newsletter form all silently stopped being wired up. Gate the
+       block instead of leaving the function. */
+    if (stage && slides.length) {
       var dots = document.querySelectorAll('.store-dot');
       var chromeUrl = document.getElementById('chrome-url');
       var current = 0, timer = null, visible = true;
