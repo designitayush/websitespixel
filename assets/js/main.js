@@ -119,6 +119,8 @@
     var media = document.getElementById('showcase-media');
     if (stage) {
       var slides = stage.querySelectorAll('.store-slide');
+      /* The stage now holds a looping video instead of slides. */
+      if (!slides.length) return;
       var dots = document.querySelectorAll('.store-dot');
       var chromeUrl = document.getElementById('chrome-url');
       var current = 0, timer = null, visible = true;
@@ -205,14 +207,7 @@
         mtrack.appendChild(clone);
       }
     }
-    document.querySelectorAll('.v-track').forEach(function (t) {
-      var g = t.querySelector('.v-group');
-      if (g) {
-        var c = g.cloneNode(true);
-        c.setAttribute('aria-hidden', 'true');
-        t.appendChild(c);
-      }
-    });
+
 
     /* ---------- Set-piece cards open the case studies ---------- */
     var scStage = document.getElementById('sc-track');
@@ -366,7 +361,7 @@
           '<div class="m-ba-col is-after"><h5>After</h5><p>' + esc(c.after) + '</p></div>' +
         '</div></div>' +
         '<div class="m-section"><blockquote class="m-quote"><div class="m-stars" aria-label="Five star review">★★★★★</div>“' + esc(c.quote) + '”<footer>' + esc(c.by) + '</footer></blockquote></div>' +
-        '<div class="m-cta"><a class="btn btn-primary btn-lg btn-arrow" href="mailto:teamwebsitepixle@gmail.com?subject=Strategy%20Call%20Request">Book a Strategy Call<span class="arr2" aria-hidden="true">→</span></a></div>' +
+        '<div class="m-cta"><a class="btn btn-primary btn-lg btn-arrow" href="mailto:teamwebsitespixel@gmail.com?subject=Strategy%20Call%20Request">Book a Strategy Call<span class="arr2" aria-hidden="true">→</span></a></div>' +
         '<div class="m-switch"><button type="button" id="m-prev">← Previous project</button><button type="button" id="m-next">Next project →</button></div>';
       return true;
     }
@@ -455,29 +450,6 @@
       });
     }
 
-    /* ---------- Process: horizontal pan (desktop) ---------- */
-    var pin = document.getElementById('process-pin');
-    var track = document.getElementById('process-track');
-    var barFill = document.getElementById('process-bar-fill');
-    if (pin && track && isDesktop && !reduced) {
-      var getDistance = function () { return Math.max(track.scrollWidth - window.innerWidth, 0); };
-      gsap.to(track, {
-        x: function () { return -getDistance(); },
-        ease: 'none',
-        scrollTrigger: {
-          trigger: pin,
-          start: 'top top',
-          end: function () { return '+=' + getDistance(); },
-          pin: true,
-          scrub: 1,
-          invalidateOnRefresh: true,
-          onUpdate: function (self) {
-            if (barFill) barFill.style.transform = 'scaleX(' + self.progress + ')';
-          }
-        }
-      });
-    }
-
     /* ---------- FAB visibility ---------- */
     var fab = document.getElementById('fab');
     if (fab) {
@@ -529,6 +501,362 @@
     if (year) year.textContent = new Date().getFullYear();
 
     /* ---------- Refresh triggers after images settle ---------- */
-    window.addEventListener('load', function () { ScrollTrigger.refresh(); });
+    window.addEventListener('load', function () {
+      ScrollTrigger.refresh();
+    });
   }
+})();
+
+/* Scroll story runs on its own: it must not depend on the GSAP branch above. */
+(function () {
+  var REDUCED = window.matchMedia
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* ---------- Scroll story: lerped collage + progress rail ---------- */
+  var story = document.querySelector('.story');
+  if (story) {
+    var rows = [].slice.call(story.querySelectorAll('.story-row'));
+    var fill = story.querySelector('.story-rail-fill');
+    var target = 0, current = 0, frame = null;
+
+    function storyProgress() {
+      var r = story.getBoundingClientRect();
+      var span = r.height - window.innerHeight;
+      if (span <= 0) return 0;
+      return Math.min(1, Math.max(0, -r.top / span));
+    }
+
+    function paint(p) {
+      for (var i = 0; i < rows.length; i++) {
+        /* Neighbouring rows always travel opposite ways: that counter-motion
+           is what reads as depth. */
+        var dir = i % 2 === 0 ? -1 : 1;
+        var travel = parseFloat(rows[i].getAttribute('data-travel')) || 200;
+        rows[i].style.transform =
+          'translate3d(' + (dir * (p - 0.5) * 2 * travel).toFixed(2) + 'px,0,0)';
+      }
+      if (fill) fill.style.transform = 'scaleY(' + p.toFixed(4) + ')';
+    }
+
+    function tick() {
+      current += (target - current) * 0.09;      /* weight, not a 1:1 bind */
+      if (Math.abs(target - current) < 0.0002) {
+        current = target; paint(current); frame = null; return;
+      }
+      paint(current);
+      frame = requestAnimationFrame(tick);
+    }
+
+    function onStoryScroll() {
+      target = storyProgress();
+      if (REDUCED) { current = target; paint(current); return; }
+      if (!frame) frame = requestAnimationFrame(tick);
+    }
+
+    /* Exactly one reason is active: the block whose middle sits closest to the
+     middle of the viewport. */
+  var blocks = [].slice.call(story.querySelectorAll('.story-block'));
+  function markActive() {
+    var mid = window.innerHeight / 2, best = -1, bestD = Infinity;
+    for (var i = 0; i < blocks.length; i++) {
+      var r = blocks[i].getBoundingClientRect();
+      var d = Math.abs(r.top + r.height / 2 - mid);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    for (var k = 0; k < blocks.length; k++) {
+      blocks[k].classList.toggle('is-active', k === best);
+    }
+  }
+  window.addEventListener('scroll', markActive, { passive: true });
+  window.addEventListener('resize', markActive);
+  markActive();
+
+  window.addEventListener('scroll', onStoryScroll, { passive: true });
+    window.addEventListener('resize', onStoryScroll);
+    onStoryScroll();
+    paint(target);
+  }
+
+})();
+
+/* Hero wall + showreel: independent of GSAP, so the loop always starts. */
+window.addEventListener('load', function () {
+  /* Start every hero-wall column on the same frame. */
+  var wall = document.querySelector('.hwall');
+  if (!wall) return;
+  wall.classList.add('hwall-ready');
+
+  /* Stop animating once the hero is off-screen: no point burning frames
+     on a background nobody can see. */
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (entries) {
+      wall.classList.toggle('hwall-paused', !entries[0].isIntersecting);
+    }, { rootMargin: '120px' }).observe(document.querySelector('.hero'));
+
+    /* Decoding 1080p costs real CPU, so the showreel only runs while it is
+       actually on screen. Playback state only; the scroll animation on the
+       container is untouched. */
+    var reel = document.querySelector('.store-video');
+    if (reel) {
+      new IntersectionObserver(function (entries) {
+        if (entries[0].isIntersecting) {
+          var play = reel.play();
+          if (play && play.catch) play.catch(function () {});
+        } else {
+          reel.pause();
+        }
+      }, { rootMargin: '0px' }).observe(reel);
+    }
+  }
+});
+
+/* Review rows fill themselves. This is plain DOM work with no GSAP in it,
+   so it must not sit behind the scroll-driven-animation branch: modern
+   Chrome skips that branch and the rows were left half empty. */
+(function () {
+  document.querySelectorAll('.v-track').forEach(function (t) {
+    var g = t.querySelector('.v-group');
+    if (!g) return;
+    /* One clone is not enough on a wide screen: keep copying until the track
+       is at least twice the viewport, so the loop never runs out of cards. */
+    var need = Math.max(2, Math.ceil((window.innerWidth * 2) / Math.max(g.scrollWidth, 1)));
+    for (var i = 1; i < need; i++) {
+      var c = g.cloneNode(true);
+      c.setAttribute('aria-hidden', 'true');
+      t.appendChild(c);
+    }
+  });
+})();
+
+/* Booking: three guided steps, then one POST to /api/book.
+   Its own scope so it never depends on the animation branches above. */
+(function () {
+  var form = document.getElementById('book-form');
+  if (!form) return;
+
+  var SLOTS = ['09:30', '10:00', '10:30', '11:00', '11:30',
+               '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
+  var MONTHS = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+  var HORIZON = 56;                       /* bookable days ahead */
+  var opened = Date.now();
+  var picked = { date: null, label: '', time: null };
+
+  var grid = document.getElementById('cal-grid');
+  var monthLabel = document.getElementById('cal-month');
+  var prev = document.getElementById('cal-prev');
+  var next = document.getElementById('cal-next');
+  var slotGrid = document.getElementById('slot-grid');
+  var status = document.getElementById('book-status');
+  var submit = document.getElementById('book-submit');
+
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var last = new Date(today); last.setDate(last.getDate() + HORIZON);
+  var view = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  var bookable = function (d) {
+    var day = d.getDay();
+    return d >= today && d <= last && day !== 0 && day !== 6;
+  };
+  var iso = function (d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
+           '-' + String(d.getDate()).padStart(2, '0');
+  };
+  var pretty = function (d) {
+    return d.toLocaleDateString(undefined,
+      { weekday: 'long', day: 'numeric', month: 'long' });
+  };
+
+  function step(n) {
+    form.querySelectorAll('.book-pane').forEach(function (p) {
+      p.classList.toggle('is-active', p.getAttribute('data-pane') === String(n));
+    });
+    document.querySelectorAll('.book-steps li').forEach(function (li) {
+      var i = Number(li.getAttribute('data-step'));
+      li.classList.toggle('is-current', i === n);
+      li.classList.toggle('is-done', i < n);
+    });
+  }
+
+  function drawMonth() {
+    monthLabel.textContent = MONTHS[view.getMonth()] + ' ' + view.getFullYear();
+    grid.textContent = '';
+    var first = new Date(view.getFullYear(), view.getMonth(), 1);
+    var lead = (first.getDay() + 6) % 7;                 /* weeks start Monday */
+    var days = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
+
+    for (var i = 0; i < lead; i++) {
+      var pad = document.createElement('span');
+      pad.className = 'cal-day is-empty';
+      grid.appendChild(pad);
+    }
+    for (var d = 1; d <= days; d++) {
+      var date = new Date(view.getFullYear(), view.getMonth(), d);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cal-day';
+      btn.textContent = d;
+      btn.disabled = !bookable(date);
+      if (!btn.disabled) {
+        btn.setAttribute('aria-label', pretty(date));
+        if (picked.date === iso(date)) btn.classList.add('is-picked');
+        btn.addEventListener('click', pick.bind(null, date));
+      }
+      grid.appendChild(btn);
+    }
+    prev.disabled = view <= new Date(today.getFullYear(), today.getMonth(), 1);
+    next.disabled = view >= new Date(last.getFullYear(), last.getMonth(), 1);
+  }
+
+  var nextBtn = document.getElementById('book-next');
+  function syncNext() { nextBtn.disabled = !(picked.date && picked.time); }
+
+  function pick(date) {
+    picked.date = iso(date);
+    picked.label = pretty(date);
+    picked.time = null;                      /* a new day means a new time */
+    var lbl = document.getElementById('sel-date');
+    lbl.textContent = picked.label;
+    lbl.classList.add('is-set');
+    drawMonth();
+    drawSlots();
+    syncNext();
+  }
+
+  function drawSlots() {
+    slotGrid.textContent = '';
+    SLOTS.forEach(function (t) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'slot' + (picked.time === t ? ' is-picked' : '');
+      b.textContent = t;
+      b.addEventListener('click', function () {
+        picked.time = t;
+        document.getElementById('sel-when').textContent = picked.label + ', ' + t;
+        drawSlots();
+        syncNext();
+      });
+      slotGrid.appendChild(b);
+    });
+  }
+
+  nextBtn.addEventListener('click', function () { if (picked.date && picked.time) step(2); });
+
+  prev.addEventListener('click', function () { view.setMonth(view.getMonth() - 1); drawMonth(); });
+  next.addEventListener('click', function () { view.setMonth(view.getMonth() + 1); drawMonth(); });
+  form.querySelectorAll('[data-back]').forEach(function (b) {
+    b.addEventListener('click', function () { step(Number(b.getAttribute('data-back'))); });
+  });
+
+  function showErrors(errors) {
+    form.querySelectorAll('.bf').forEach(function (f) { f.classList.remove('has-error'); });
+    form.querySelectorAll('.bf-err').forEach(function (e) { e.textContent = ''; });
+    var firstField = null;
+    Object.keys(errors).forEach(function (k) {
+      var slot = form.querySelector('[data-err="' + k + '"]');
+      if (slot) {
+        slot.textContent = errors[k];
+        slot.closest('.bf').classList.add('has-error');
+        if (!firstField) firstField = slot.closest('.bf').querySelector('input,textarea,select');
+      }
+    });
+    if (firstField) firstField.focus();
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    status.textContent = '';
+    status.classList.remove('is-bad');
+
+    var data = {
+      date: picked.label, time: picked.time,
+      name: form.name.value, email: form.email.value, phone: form.phone.value,
+      company: form.company.value, website: form.website.value,
+      service: form.service.value, project: form.project.value,
+      company_url: form.company_url.value, elapsed: Date.now() - opened
+    };
+
+    /* Client-side first so an obvious slip never costs a round trip. */
+    var errs = {};
+    if (!data.name || data.name.trim().length < 2) errs.name = 'Tell us your name.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email)) errs.email = 'That email address does not look right.';
+    if (!data.project || data.project.trim().length < 10) errs.project = 'A sentence or two about the project, please.';
+    if (Object.keys(errs).length) { showErrors(errs); return; }
+    if (!picked.date || !picked.time) { step(1); return; }
+
+    submit.disabled = true;
+    submit.classList.add('is-sending');
+    submit.querySelector('.bs-label').textContent = 'Sending';
+
+    fetch('/api/book', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (body) {
+        return { ok: res.ok, status: res.status, body: body };
+      });
+    }).then(function (r) {
+      if (r.ok) {
+        form.querySelectorAll('.book-pane').forEach(function (p) { p.classList.remove('is-active'); });
+        var done = form.querySelector('[data-pane="done"]');
+        done.hidden = false;
+        document.getElementById('done-when').textContent = picked.label + ' at ' + picked.time;
+        document.querySelectorAll('.book-steps li').forEach(function (li) {
+          li.classList.remove('is-current'); li.classList.add('is-done');
+        });
+        done.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        return;
+      }
+      if (r.status === 422 && r.body.errors) { showErrors(r.body.errors); return; }
+      throw new Error(r.body.error || 'Something went wrong.');
+    }).catch(function (err) {
+      /* Never fail silently: say what happened and give a way through. */
+      status.textContent = err.message +
+        ' You can also email teamwebsitespixel@gmail.com directly.';
+      status.classList.add('is-bad');
+    }).then(function () {
+      submit.disabled = false;
+      submit.classList.remove('is-sending');
+      submit.querySelector('.bs-label').textContent = 'Confirm booking';
+    });
+  });
+
+  drawMonth();
+})();
+
+/* Process pan lives on its own. It was inside the branch that only runs when a
+   browser LACKS CSS scroll-driven animations, so in current Chrome it never
+   started and the section simply did not pan. */
+(function () {
+  if (!window.gsap || !window.ScrollTrigger) return;
+  var isDesktop = window.matchMedia('(min-width: 900px)').matches;
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  gsap.registerPlugin(ScrollTrigger);
+  /* ---------- Process: horizontal pan (desktop) ---------- */
+  var pin = document.getElementById('process-pin');
+  var track = document.getElementById('process-track');
+  var barFill = document.getElementById('process-bar-fill');
+  if (pin && track && isDesktop && !reduced) {
+    var getDistance = function () { return Math.max(track.scrollWidth - window.innerWidth, 0); };
+    /* Scroll length is stretched well past the travel distance so each card
+       gets real dwell time instead of flicking past. */
+    var getScroll = function () { return getDistance() * 2.4; };
+    gsap.to(track, {
+      x: function () { return -getDistance(); },
+      ease: 'none',
+      scrollTrigger: {
+        trigger: pin,
+        start: 'top top',
+        end: function () { return '+=' + getScroll(); },
+        pin: true,
+        scrub: 1.35,
+        invalidateOnRefresh: true,
+        onUpdate: function (self) {
+          if (barFill) barFill.style.transform = 'scaleX(' + self.progress + ')';
+        }
+      }
+    });
+  }
+
+
 })();

@@ -1,1 +1,8 @@
 .DS_Store
+
+# Never commit secrets: the Resend key belongs in Vercel env vars only.
+.env
+.env.*
+!.env.example
+.vercel
+node_modules
