@@ -36,6 +36,44 @@
   "knowsAbout": ["Shopify", "Shopify Plus", "Ecommerce CRO", "Shopify SEO", "Headless Commerce", "Klaviyo"]
 }
 </script>
+
+  <!-- Analytics ---------------------------------------------------------
+       One config object, three sinks. Leave a value blank and that sink
+       simply never loads: no errors, no console noise, no dead requests.
+         ga4 - Google Analytics 4 Measurement ID, looks like G-XXXXXXXXXX
+       Vercel Web Analytics and Microsoft Clarity need no config here.
+  -->
+  <script>window.WP_ANALYTICS = { ga4: '' };</script>
+
+  <!-- Vercel Web Analytics. First-party path, so ad blockers and
+       tracker lists leave it alone and the numbers stay honest. -->
+  <script defer src="/_vercel/insights/script.js"></script>
+
+  <!-- Microsoft Clarity: session recordings and heatmaps. -->
+  <script>
+    (function (c, l, a, r, i, t, y) {
+      c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments); };
+      t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i;
+      y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
+    })(window, document, "clarity", "script", "xy6pbvnzgp");
+  </script>
+
+  <!-- Google Analytics 4. Loads only once a Measurement ID exists above,
+       so the site never ships a broken tag while the property is pending. -->
+  <script>
+    (function () {
+      var id = (window.WP_ANALYTICS || {}).ga4;
+      if (!id) return;
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function () { window.dataLayer.push(arguments); };
+      window.gtag("js", new Date());
+      window.gtag("config", id);
+      var s = document.createElement("script");
+      s.async = 1;
+      s.src = "https://www.googletagmanager.com/gtag/js?id=" + id;
+      document.head.appendChild(s);
+    })();
+  </script>
 </head>
 <body>
 
