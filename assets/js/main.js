@@ -627,6 +627,40 @@ window.addEventListener('load', function () {
   });
 })();
 
+/* Attribution + funnel events. A tiny shim so the booking flow can report to
+   whatever analytics happens to be on the page without knowing which one. */
+(function () {
+  var KEY = 'wp_ctx';
+  var ctx = null;
+  try { ctx = JSON.parse(sessionStorage.getItem(KEY) || 'null'); } catch (e) { ctx = null; }
+  if (!ctx) {
+    var q = new URLSearchParams(location.search);
+    var utm = [];
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+      'gclid', 'fbclid'].forEach(function (k) {
+      if (q.get(k)) utm.push(k + '=' + q.get(k));
+    });
+    ctx = {
+      utm: utm.join('&'),
+      referrer: document.referrer || '',
+      landing: location.origin + location.pathname
+    };
+    try { sessionStorage.setItem(KEY, JSON.stringify(ctx)); } catch (e) {}
+  }
+  try { ctx.tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; }
+  catch (e) { ctx.tz = ''; }
+  window.WPCTX = ctx;
+
+  /* Fire and forget: every sink is optional and none of them may throw. */
+  window.wpTrack = function (name, props) {
+    var data = props || {};
+    try { if (window.dataLayer) window.dataLayer.push({ event: name }); } catch (e) {}
+    try { if (window.clarity) window.clarity('event', name); } catch (e) {}
+    try { if (window.va) window.va('event', { name: name, data: data }); } catch (e) {}
+    try { if (window.gtag) window.gtag('event', name, data); } catch (e) {}
+  };
+})();
+
 /* Booking: three guided steps, then one POST to /api/book.
    Its own scope so it never depends on the animation branches above. */
 (function () {
@@ -720,6 +754,7 @@ window.addEventListener('load', function () {
     drawMonth();
     drawSlots();
     syncNext();
+    wpTrack('booking_date_selected');
   }
 
   function drawSlots() {
@@ -734,12 +769,17 @@ window.addEventListener('load', function () {
         document.getElementById('sel-when').textContent = picked.label + ', ' + t;
         drawSlots();
         syncNext();
+      wpTrack('booking_time_selected');
       });
       slotGrid.appendChild(b);
     });
   }
 
-  nextBtn.addEventListener('click', function () { if (picked.date && picked.time) step(2); });
+  nextBtn.addEventListener('click', function () {
+    if (!picked.date || !picked.time) return;
+    wpTrack('booking_details_opened');
+    step(2);
+  });
 
   prev.addEventListener('click', function () { view.setMonth(view.getMonth() - 1); drawMonth(); });
   next.addEventListener('click', function () { view.setMonth(view.getMonth() + 1); drawMonth(); });
@@ -768,7 +808,9 @@ window.addEventListener('load', function () {
     status.classList.remove('is-bad');
 
     var data = {
-      date: picked.label, time: picked.time,
+      date: picked.label, dateISO: picked.date, time: picked.time,
+      timezone: WPCTX.tz, utm: WPCTX.utm,
+      referrer: WPCTX.referrer, landing: WPCTX.landing,
       name: form.name.value, email: form.email.value, phone: form.phone.value,
       company: form.company.value, website: form.website.value,
       service: form.service.value, project: form.project.value,
@@ -782,6 +824,9 @@ window.addEventListener('load', function () {
     if (!data.project || data.project.trim().length < 10) errs.project = 'A sentence or two about the project, please.';
     if (Object.keys(errs).length) { showErrors(errs); return; }
     if (!picked.date || !picked.time) { step(1); return; }
+
+    wpTrack('booking_submitted');
+
 
     submit.disabled = true;
     submit.classList.add('is-sending');
@@ -800,6 +845,8 @@ window.addEventListener('load', function () {
         form.querySelectorAll('.book-pane').forEach(function (p) { p.classList.remove('is-active'); });
         var done = form.querySelector('[data-pane="done"]');
         done.hidden = false;
+
+        wpTrack('booking_confirmed');
         document.getElementById('done-when').textContent = picked.label + ' at ' + picked.time;
         document.querySelectorAll('.book-steps li').forEach(function (li) {
           li.classList.remove('is-current'); li.classList.add('is-done');
@@ -820,6 +867,17 @@ window.addEventListener('load', function () {
       submit.querySelector('.bs-label').textContent = 'Confirm booking';
     });
   });
+  /* Slots are published in our working hours, not the visitor's. Saying so out
+     loud is the difference between a kept call and a missed one. */
+  (function () {
+    if (!slotGrid || !slotGrid.parentNode) return;
+    var tzNote = document.createElement('p');
+    tzNote.className = 'slot-note';
+    tzNote.style.cssText = 'margin:10px 0 0;font-size:12px;line-height:1.5;opacity:.6';
+    tzNote.textContent = 'All times are India Standard Time. Your confirmation'
+      + ' email shows the same slot in your own timezone.';
+    slotGrid.parentNode.appendChild(tzNote);
+  })();
 
   drawMonth();
 })();
