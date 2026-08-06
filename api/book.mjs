@@ -85,12 +85,10 @@ function whenIn(date, tz) {
   try {
     return new Intl.DateTimeFormat('en-GB', {
       timeZone: tz, weekday: 'long', day: 'numeric', month: 'long',
-      hour: '2-digit', minute: '2-digit', hour12: false,
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short',
     }).format(date);
   } catch (err) { return ''; }
 }
-
-const shortZone = (tz) => String(tz || '').split('/').pop().replace(/_/g, ' ');
 
 /* ----------------------------------------------------------------- ics ---*/
 const icsText = (s) => String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;')
@@ -301,10 +299,8 @@ export default async function handler(req, res) {
 
   /* Their timezone is only ever a display convenience; the instant is ours. */
   const theirTz = out.timezone || BIZ_TZ;
-  const whenOurs = start ? whenIn(start, BIZ_TZ) + ' (' + shortZone(BIZ_TZ) + ')'
-    : out.date + ' at ' + out.time;
-  const whenTheirs = start ? whenIn(start, theirTz) + ' (' + shortZone(theirTz) + ')'
-    : out.date + ' at ' + out.time;
+  const whenOurs = start ? whenIn(start, BIZ_TZ) : out.date + ' at ' + out.time;
+  const whenTheirs = start ? whenIn(start, theirTz) : out.date + ' at ' + out.time;
 
   await persist({
     reference: ref, receivedAt: new Date().toISOString(),
