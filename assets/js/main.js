@@ -469,6 +469,9 @@
     }
 
     /* ---------- Newsletter ---------- */
+    /* This used to fake it: a 700ms timer, a cheerful message, and the
+       address dropped on the floor. Now it posts to /api/subscribe, which
+       stores the reader before it thanks them. */
     var nlForm = document.getElementById('nl-form');
     var nlMsg = document.getElementById('nl-msg');
     if (nlForm && nlMsg) {
@@ -477,22 +480,53 @@
         var input = document.getElementById('nl-email');
         var btn = nlForm.querySelector('button');
         var val = (input.value || '').trim();
+
+        /* Spam-clicking the button should do nothing, not queue five signups. */
+        if (btn.disabled) return;
+
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val)) {
           nlMsg.textContent = 'Enter a valid email address.';
           nlMsg.classList.add('is-error');
           input.focus();
           return;
         }
+
         nlMsg.classList.remove('is-error');
+        nlMsg.textContent = '';
         btn.disabled = true;
         var label = btn.textContent;
         btn.textContent = 'Subscribing…';
-        setTimeout(function () {
+        if (window.wpTrack) window.wpTrack('newsletter_submitted');
+
+        var ctx = window.WPCTX || {};
+        fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: val,
+            utm: ctx.utm || '',
+            referrer: ctx.referrer || '',
+            landing: ctx.landing || '',
+            timezone: ctx.tz || ''
+          })
+        }).then(function (res) {
+          return res.json().catch(function () { return {}; }).then(function (b) {
+            return { ok: res.ok, body: b };
+          });
+        }).then(function (r) {
+          if (!r.ok) throw new Error(r.body.error || 'That did not go through.');
+          nlForm.reset();
+          nlMsg.textContent = 'You\u2019re on the list. A confirmation is on its way.';
+          if (window.wpTrack) window.wpTrack('newsletter_subscribed');
+        }).catch(function (err) {
+          /* Say what happened and leave a door open. */
+          nlMsg.textContent = err.message +
+            ' Email teamwebsitespixel@gmail.com and we will add you by hand.';
+          nlMsg.classList.add('is-error');
+        }).then(function () {
           btn.disabled = false;
           btn.textContent = label;
-          nlForm.reset();
-          nlMsg.textContent = 'You’re on the list. Talk soon.';
-        }, 700);
+        });
       });
     }
 
