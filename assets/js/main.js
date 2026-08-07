@@ -182,7 +182,7 @@
     }
 
     /* ---------- Stat counters ---------- */
-    document.querySelectorAll('.count').forEach(function (el) {
+    document.querySelectorAll('.count--legacy').forEach(function (el) {
       var target = parseFloat(el.getAttribute('data-count'));
       if (reduced) { el.textContent = target; return; }
       var obj = { v: 0 };
@@ -361,7 +361,10 @@
           '<div class="m-ba-col is-after"><h5>After</h5><p>' + esc(c.after) + '</p></div>' +
         '</div></div>' +
         '<div class="m-section"><blockquote class="m-quote"><div class="m-stars" aria-label="Five star review">★★★★★</div>“' + esc(c.quote) + '”<footer>' + esc(c.by) + '</footer></blockquote></div>' +
-        '<div class="m-cta"><a class="btn btn-primary btn-lg btn-arrow" href="mailto:teamwebsitespixel@gmail.com?subject=Strategy%20Call%20Request">Book a Strategy Call<span class="arr2" aria-hidden="true">→</span></a></div>' +
+        '<div class="m-cta">' +
+          '<a class="btn btn-primary btn-lg btn-arrow" href="/work/' + key + '/">View full case study<span class="arr2" aria-hidden="true">&rarr;</span></a>' +
+          '<a class="btn btn-ghost btn-lg m-cta-2" href="#contact">Book a strategy call</a>' +
+        '</div>' +
         '<div class="m-switch"><button type="button" id="m-prev">← Previous project</button><button type="button" id="m-next">Next project →</button></div>';
       return true;
     }
@@ -641,6 +644,32 @@ window.addEventListener('load', function () {
   var opened = Date.now();
   var picked = { date: null, label: '', time: null };
 
+  /* Our slots are availability in Asia/Kolkata (fixed +05:30, no DST). We render
+     them on the visitor's own clock — making a UK or US buyer do timezone
+     arithmetic at the moment of commitment is a documented conversion killer —
+     but still submit the canonical IST string, so the inbox stays in one zone. */
+  var IST_OFFSET_MIN = 330;
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function visitorZone() {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; }
+    catch (e) { return ''; }
+  }
+  function baseDate() {
+    if (picked.date) { var p = String(picked.date).split('-'); return { y: +p[0], m: +p[1] - 1, d: +p[2] }; }
+    var n = new Date();
+    return { y: n.getFullYear(), m: n.getMonth(), d: n.getDate() };
+  }
+  function shiftsClock() {
+    var b = baseDate();
+    return -(new Date(b.y, b.m, b.d, 12, 0)).getTimezoneOffset() !== IST_OFFSET_MIN;
+  }
+  function localLabel(t) {
+    if (!shiftsClock()) return t;
+    var b = baseDate(), hm = t.split(':');
+    var local = new Date(Date.UTC(b.y, b.m, b.d, +hm[0], +hm[1]) - IST_OFFSET_MIN * 60000);
+    return pad2(local.getHours()) + ':' + pad2(local.getMinutes());
+  }
+
   var grid = document.getElementById('cal-grid');
   var monthLabel = document.getElementById('cal-month');
   var prev = document.getElementById('cal-prev');
@@ -728,15 +757,25 @@ window.addEventListener('load', function () {
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'slot' + (picked.time === t ? ' is-picked' : '');
-      b.textContent = t;
+      b.textContent = localLabel(t);
       b.addEventListener('click', function () {
         picked.time = t;
-        document.getElementById('sel-when').textContent = picked.label + ', ' + t;
+        document.getElementById('sel-when').textContent = picked.label + ', ' + localLabel(t);
         drawSlots();
         syncNext();
       });
       slotGrid.appendChild(b);
     });
+
+    var note = document.getElementById('slot-tz');
+    if (!note) {
+      note = document.createElement('p');
+      note.id = 'slot-tz';
+      note.className = 'slot-tz';
+      slotGrid.parentNode.insertBefore(note, slotGrid.nextSibling);
+    }
+    var z = visitorZone();
+    note.textContent = 'Times shown in your local timezone' + (z ? ' (' + z + ')' : '') + '.';
   }
 
   nextBtn.addEventListener('click', function () { if (picked.date && picked.time) step(2); });
@@ -769,9 +808,9 @@ window.addEventListener('load', function () {
 
     var data = {
       date: picked.label, time: picked.time,
-      name: form.name.value, email: form.email.value, phone: form.phone.value,
-      company: form.company.value, website: form.website.value,
+      name: form.name.value, email: form.email.value, website: form.website.value,
       service: form.service.value, project: form.project.value,
+      timezone: visitorZone(),
       company_url: form.company_url.value, elapsed: Date.now() - opened
     };
 
@@ -779,7 +818,6 @@ window.addEventListener('load', function () {
     var errs = {};
     if (!data.name || data.name.trim().length < 2) errs.name = 'Tell us your name.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email)) errs.email = 'That email address does not look right.';
-    if (!data.project || data.project.trim().length < 10) errs.project = 'A sentence or two about the project, please.';
     if (Object.keys(errs).length) { showErrors(errs); return; }
     if (!picked.date || !picked.time) { step(1); return; }
 
@@ -859,4 +897,243 @@ window.addEventListener('load', function () {
   }
 
 
+})();
+
+/* Free audit form. Isolated from the booking flow on purpose: that path is live
+   and must not be affected by anything here. */
+(function () {
+  var form = document.getElementById('audit-form');
+  if (!form) return;
+  var opened = Date.now();
+  var submit = document.getElementById('audit-submit');
+  var status = document.getElementById('audit-status');
+  var done = document.getElementById('audit-done');
+
+  function showErrors(errors) {
+    form.querySelectorAll('.bf').forEach(function (f) { f.classList.remove('has-error'); });
+    form.querySelectorAll('.bf-err').forEach(function (e) { e.textContent = ''; });
+    var first = null;
+    Object.keys(errors).forEach(function (k) {
+      var slot = form.querySelector('[data-err="' + k + '"]');
+      if (!slot) return;
+      slot.textContent = errors[k];
+      slot.closest('.bf').classList.add('has-error');
+      if (!first) first = slot.closest('.bf').querySelector('input,select,textarea');
+    });
+    if (first) first.focus();
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    status.textContent = '';
+    status.classList.remove('is-bad');
+
+    var data = {
+      store: form.store.value, email: form.email.value, name: form.name.value,
+      revenue: form.revenue.value, goal: form.goal.value,
+      company_url: form.company_url.value, elapsed: Date.now() - opened
+    };
+    var errs = {};
+    if (!data.store || data.store.trim().length < 4) errs.store = 'Which store should we look at?';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email)) errs.email = 'That email address does not look right.';
+    if (Object.keys(errs).length) { showErrors(errs); return; }
+
+    submit.disabled = true;
+    submit.classList.add('is-sending');
+    submit.querySelector('.bs-label').textContent = 'Sending';
+
+    fetch('/api/audit', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (b) {
+        return { ok: res.ok, status: res.status, body: b };
+      });
+    }).then(function (r) {
+      if (r.ok) {
+        form.querySelectorAll('.bf, .fa-form-h, .fa-submit').forEach(function (n) { n.hidden = true; });
+        done.hidden = false;
+        return;
+      }
+      if (r.status === 422 && r.body.errors) { showErrors(r.body.errors); return; }
+      throw new Error(r.body.error || 'Something went wrong.');
+    }).catch(function (err) {
+      status.textContent = err.message + ' You can also email teamwebsitespixel@gmail.com directly.';
+      status.classList.add('is-bad');
+    }).then(function () {
+      submit.disabled = false;
+      submit.classList.remove('is-sending');
+      submit.querySelector('.bs-label').textContent = 'Send my audit request';
+    });
+  });
+})();
+
+/* Stat counters. Deliberately standalone and GSAP-free: the original lived
+   inside a branch that only runs when the browser LACKS CSS scroll-driven
+   animations, so on every modern browser it never fired and the band showed
+   zeros. IntersectionObserver + rAF has no such dependency. */
+(function () {
+  var band = document.getElementById('stats');
+  if (!band) return;
+  var els = [].slice.call(band.querySelectorAll('.count'));
+  if (!els.length) return;
+
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var DUR = 1150;   // fast — the number should land, not crawl
+  var STAGGER = 110;
+
+  function count(el, delay) {
+    var target = parseFloat(el.getAttribute('data-count'));
+    if (!isFinite(target)) return;
+    if (reduced) { el.textContent = target; return; }
+    var t0 = null;
+    function frame(now) {
+      if (t0 === null) t0 = now;
+      var p = Math.min(1, (now - t0) / DUR);
+      // Cubic ease-out: quick off the mark, decelerating onto the real figure.
+      el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) { requestAnimationFrame(frame); }
+      else { el.textContent = target; }
+    }
+    window.setTimeout(function () { requestAnimationFrame(frame); }, delay);
+  }
+
+  function start() { els.forEach(function (el, i) { count(el, i * STAGGER); }); }
+
+  if (!('IntersectionObserver' in window)) { start(); return; }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      io.disconnect();
+      start();
+    });
+  }, { threshold: 0.3 });
+  io.observe(band);
+})();
+
+/* Landing-page showcase: only pan while the frame is actually on screen, so a
+   long case study page is not animating three tall images out of view. */
+(function () {
+  var frames = [].slice.call(document.querySelectorAll('[data-lp-legacy]'));
+  if (!frames.length) return;
+  if (!('IntersectionObserver' in window)) {
+    frames.forEach(function (f) { f.classList.add('is-live'); });
+    return;
+  }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { e.target.classList.toggle('is-live', e.isIntersecting); });
+  }, { threshold: 0.15 });
+  frames.forEach(function (f) { io.observe(f); });
+})();
+
+/* ------------------------------------------------------------------
+   Scrolling landing-page preview.
+
+   Idle   : drifts down slowly, reverses at each end so it never cuts.
+   Hover  : pauses instantly and holds position.
+   Manual : the visitor's wheel, thumb or keyboard takes over completely.
+   Resume : 2.5s after they stop, we continue from where they left it.
+
+   Position is tracked in a variable rather than read back from
+   scrollTop each frame: at this speed each frame moves a fraction of a
+   pixel, and reading back a rounded value would cancel every increment.
+------------------------------------------------------------------- */
+(function () {
+  var frames = [].slice.call(document.querySelectorAll('[data-scrollpreview]'));
+  if (!frames.length) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  var SPEED = 16;        /* px per second — slow enough to read */
+  var RESUME_MS = 2500;
+
+  frames.forEach(function (frame) {
+    var port = frame.querySelector('.pv-port, .lp-port');
+    if (!port) return;
+
+    var pos = 0, dir = 1;
+    var hovering = false, manual = false, visible = false;
+    var resumeTimer = null, last = 0;
+
+    function paint() {
+      frame.classList.toggle('is-paused', hovering && !manual);
+      frame.classList.toggle('is-manual', manual);
+    }
+
+    function takeOver() {
+      manual = true; paint();
+      clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(function () {
+        manual = false;
+        pos = port.scrollTop;                       /* carry on from here */
+        var max = port.scrollHeight - port.clientHeight;
+        dir = (max > 0 && pos > max - 8) ? -1 : 1;  /* do not bounce off the end */
+        paint();
+      }, RESUME_MS);
+    }
+
+    ['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach(function (evt) {
+      port.addEventListener(evt, takeOver, { passive: true });
+    });
+
+    frame.addEventListener('mouseenter', function () { hovering = true; paint(); });
+    frame.addEventListener('mouseleave', function () { hovering = false; paint(); });
+    port.addEventListener('focusin',  function () { hovering = true; paint(); });
+    port.addEventListener('focusout', function () { hovering = false; paint(); });
+
+    function step(now) {
+      requestAnimationFrame(step);
+      if (!last) { last = now; pos = port.scrollTop; return; }
+      var dt = Math.min(64, now - last);
+      last = now;
+
+      if (!visible || hovering || manual) { pos = port.scrollTop; return; }
+
+      var max = port.scrollHeight - port.clientHeight;
+      if (max <= 0) return;
+
+      pos += dir * SPEED * (dt / 1000);
+      if (pos <= 0)        { pos = 0;   dir = 1; }
+      else if (pos >= max) { pos = max; dir = -1; }
+      port.scrollTop = pos;
+    }
+
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) {
+        es.forEach(function (e) { visible = e.isIntersecting; });
+      }, { threshold: 0.2 }).observe(frame);
+    } else { visible = true; }
+
+    requestAnimationFrame(step);
+  });
+})();
+
+/* Showcase tiles open their case study.
+
+   The original modal wiring sits inside the same branch that only runs when a
+   browser LACKS CSS scroll-driven animations, so on every modern browser these
+   eight tiles have been inert — clicking one did nothing at all. Rather than
+   revive a modal we cannot reach from here, each tile now navigates to its own
+   case study page, which is richer, linkable and indexable. The markup is
+   untouched, so hover states and the wall layout are exactly as they were. */
+(function () {
+  var stage = document.getElementById('sc-track');
+  if (!stage) return;
+  if (typeof window.openCase === 'function') return;   /* modal alive? leave it alone */
+
+  stage.addEventListener('click', function (e) {
+    var tile = e.target.closest('.sc-tile[data-project]');
+    if (!tile) return;
+    var slug = tile.getAttribute('data-project');
+    if (!slug) return;
+    e.preventDefault();
+    window.location.href = '/work/' + slug + '/';
+  });
+
+  /* Make the affordance honest for keyboard and assistive tech. */
+  [].slice.call(stage.querySelectorAll('.sc-tile[data-project]')).forEach(function (t) {
+    var name = t.getAttribute('data-project');
+    if (!t.getAttribute('aria-label')) {
+      t.setAttribute('aria-label', 'View the ' + name + ' case study');
+    }
+    t.style.cursor = 'pointer';
+  });
 })();

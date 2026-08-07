@@ -67,7 +67,7 @@ function template(d, stamp) {
   <p style="margin:0 0 20px;color:#666;font-size:14px">${esc(d.date)} at ${esc(d.time)}</p>
   <table style="border-collapse:collapse;font-size:14px;width:100%">
     ${row('Name', d.name)}${row('Email', d.email)}${row('Phone', d.phone)}
-    ${row('Company', d.company)}${row('Website', d.website)}${row('Service', d.service)}
+    ${row('Company', d.company)}${row('Website', d.website)}${row('Service', d.service)}${row('Their timezone', d.timezone)}
   </table>
   <p style="margin:20px 0 6px;color:#666;font-size:13px">Project</p>
   <p style="margin:0;padding:14px 16px;background:#f6f6f7;border-radius:8px;
