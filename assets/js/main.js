@@ -886,7 +886,7 @@ window.addEventListener('load', function () {
 
     var data = {
       date: picked.label, dateISO: picked.date, time: picked.time,
-      timezone: WPCTX.tz, utm: WPCTX.utm,
+      utm: WPCTX.utm,
       referrer: WPCTX.referrer, landing: WPCTX.landing,
       name: form.name.value, email: form.email.value, phone: form.phone ? form.phone.value : '',
       company: form.company ? form.company.value : '', website: form.website.value,
@@ -918,10 +918,32 @@ window.addEventListener('load', function () {
         return { ok: res.ok, status: res.status, body: body };
       });
     }).then(function (r) {
-      if (r.ok) {
+      /* A 200 is not proof of anything. The server reports booked:true only
+         when the record is really stored, so require it explicitly: an empty
+         or unexpected body now falls through to the error path, not the tick. */
+      if (r.ok && r.body && r.body.booked === true) {
         form.querySelectorAll('.book-pane').forEach(function (p) { p.classList.remove('is-active'); });
         var done = form.querySelector('[data-pane="done"]');
         done.hidden = false;
+        /* Truthful about the email. The slot is confirmed either way, but if
+           the confirmation did not send we say so, instead of implying an
+           inbox already has it. */
+        var mailNote = document.getElementById('done-mail-note');
+        if (!mailNote) {
+          mailNote = document.createElement('p');
+          mailNote.id = 'done-mail-note';
+          mailNote.style.cssText = 'margin:10px 0 0;font-size:13px;line-height:1.5;opacity:.75';
+          var whenEl = document.getElementById('done-when');
+          if (whenEl && whenEl.parentNode) {
+            whenEl.parentNode.insertBefore(mailNote, whenEl.nextSibling);
+          }
+        }
+        if (mailNote) {
+          mailNote.hidden = r.body.confirmationSent !== false;
+          mailNote.textContent = r.body.confirmationSent === false
+            ? 'Your slot is confirmed. The confirmation email is running late — if nothing arrives shortly, email teamwebsitespixel@gmail.com and we will resend it.'
+            : '';
+        }
 
         wpTrack('booking_confirmed');
         document.getElementById('done-when').textContent = picked.label + ' at ' + picked.time;
@@ -1046,7 +1068,8 @@ window.addEventListener('load', function () {
         return { ok: res.ok, status: res.status, body: b };
       });
     }).then(function (r) {
-      if (r.ok) {
+      /* Same rule as the booking form: a bare 200 is not success. */
+      if (r.ok && r.body && r.body.submitted === true) {
         form.querySelectorAll('.bf, .fa-form-h, .fa-submit').forEach(function (n) { n.hidden = true; });
         done.hidden = false;
         return;

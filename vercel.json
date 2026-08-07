@@ -1,4 +1,6 @@
 {
+  "buildCommand": "node scripts/check-env.js",
+  "outputDirectory": ".",
   "headers": [
     {
       "source": "/assets/fonts/(.*)",

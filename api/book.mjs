@@ -31,6 +31,7 @@ const MINUTES = Number(process.env.BOOKING_MINUTES) || 30;
 const MEETING_URL = process.env.BOOKING_MEETING_URL || '';
 const SINK = process.env.BOOKING_WEBHOOK_URL || '';
 const SINK_TOKEN = process.env.BOOKING_WEBHOOK_TOKEN || '';
+const MIN_ELAPSED = Number(process.env.FORM_MIN_ELAPSED_MS) || 1500;
 
 /* Airtable is the system of record. Email is a notification, not storage:
    inboxes get archived, filtered and lost, and a lead you cannot query is
@@ -310,6 +311,12 @@ async function persist(record) {
   const source = [record.utm, record.referrer, record.landing]
     .filter(Boolean).join(' | ');
 
+  /* persist() now reports back. skipped means no store is configured, so there
+     was nothing to fail; stored:false with skipped:false means Airtable was
+     asked and refused, which is a genuinely lost lead the handler must not
+     paper over with a 200. */
+  let outcome = { stored: false, skipped: true };
+
   try {
     const saved = await airtableCreate(AT_BOOKINGS, {
       Reference: record.reference,
@@ -326,14 +333,20 @@ async function persist(record) {
       Status: 'New',
       Source: source,
     });
-    if (saved && saved.ok === false) {
+    if (saved && saved.skipped) {
+      outcome = { stored: false, skipped: true };
+    } else if (saved && saved.ok === false) {
       console.error('airtable booking rejected:', saved.detail);
+      outcome = { stored: false, skipped: false };
+    } else {
+      outcome = { stored: true, skipped: false };
     }
   } catch (err) {
     console.error('airtable booking threw:', err && err.message);
+    outcome = { stored: false, skipped: false };
   }
 
-  if (!SINK) return;
+  if (!SINK) return outcome;
   try {
     const headers = { 'Content-Type': 'application/json' };
     if (SINK_TOKEN) headers.Authorization = 'Bearer ' + SINK_TOKEN;
@@ -344,34 +357,67 @@ async function persist(record) {
   } catch (err) {
     console.error('booking sink threw:', err && err.message);
   }
+
+  return outcome;
 }
 
 /* -------------------------------------------------------------- handler ---*/
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ ok: false, booked: false, error: 'Method not allowed' });
   }
 
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
   if (rateLimited(ip)) {
-    return res.status(429).json({ error: 'Too many attempts. Try again in a minute.' });
+    console.error('booking rate limited:', ip);
+    return res.status(429).json({
+      ok: false, booked: false, code: 'rate_limited',
+      error: 'Too many attempts. Try again in a minute.',
+    });
   }
 
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch (err) { body = {}; } }
   body = body || {};
 
-  /* Two silent spam checks: a field humans never see, and a form that came back
-     faster than anyone could actually fill it in. Both answer 200 so bots get
-     no signal that they were caught. */
-  if (clean(body.company_url, 100)) return res.status(200).json({ ok: true });
+  /* Anti-bot checks, redesigned.
+
+     These two used to answer 200 {ok:true} and do nothing else. A visitor whose
+     elapsed value never arrived got a green tick for a booking that was never
+     validated, never stored and never emailed, and nothing was logged. Neither
+     branch may fake success again.
+
+     The honeypot stays a hard reject: no human can see that field, so a hit is
+     real evidence. The timing check now FAILS OPEN. A missing or unparseable
+     elapsed value is an absent signal, not proof of a bot, so we log it and
+     carry on. Only a submission that actually reported an impossible speed is
+     turned away, and it is told so with a code the front end can handle. */
+  if (clean(body.company_url, 100)) {
+    console.error('booking rejected: honeypot filled, ip', ip);
+    return res.status(422).json({
+      ok: false, booked: false, code: 'rejected',
+      error: 'We could not accept that submission. Please email us directly.',
+    });
+  }
   const elapsed = Number(body.elapsed);
-  if (!Number.isFinite(elapsed) || elapsed < 3000) return res.status(200).json({ ok: true });
+  if (!Number.isFinite(elapsed)) {
+    console.error('booking: no usable elapsed value, processing anyway, ip', ip);
+  } else if (elapsed < MIN_ELAPSED) {
+    console.error('booking rejected: submitted in ' + elapsed + 'ms, ip', ip);
+    return res.status(422).json({
+      ok: false, booked: false, code: 'too_fast',
+      error: 'That form was submitted too quickly. Please try again.',
+    });
+  }
 
   const parsed = validate(body);
   const out = parsed.out;
-  if (Object.keys(parsed.errors).length) return res.status(422).json({ errors: parsed.errors });
+  if (Object.keys(parsed.errors).length) {
+    return res.status(422).json({
+      ok: false, booked: false, code: 'invalid', errors: parsed.errors,
+    });
+  }
 
   const ref = reference();
   const stamp = new Date().toUTCString();
@@ -382,7 +428,7 @@ export default async function handler(req, res) {
   const whenOurs = start ? whenIn(start, BIZ_TZ) : out.date + ' at ' + out.time;
   const whenTheirs = start ? whenIn(start, theirTz) : out.date + ' at ' + out.time;
 
-  await persist({
+  const stored = await persist({
     reference: ref, receivedAt: new Date().toISOString(),
     startUtc: start ? start.toISOString() : null,
     date: out.date, dateISO: out.dateISO, time: out.time,
@@ -391,6 +437,17 @@ export default async function handler(req, res) {
     website: out.website, service: out.service, project: out.project,
     utm: out.utm, referrer: out.referrer, landing: out.landing, ip: ip,
   });
+
+  /* Storage first, mail second. If a store is configured and it refused the
+     record, the lead really is gone and the only honest answer is a 500. If no
+     store is configured there was nothing to fail and email is the only trail. */
+  if (stored && stored.skipped === false && stored.stored === false) {
+    console.error('booking not stored, refusing to report success, ref', ref);
+    return res.status(500).json({
+      ok: false, booked: false, code: 'storage_failed',
+      error: 'We could not save that booking. Please email us directly.',
+    });
+  }
 
   const summary = 'Strategy call - ' + BRAND + ' x ' + out.name;
   const detail = 'A ' + MINUTES + ' minute Shopify strategy call.' +
@@ -419,8 +476,18 @@ export default async function handler(req, res) {
   });
 
   if (!team.ok) {
-    console.error('booking notification failed:', team.detail);
+    console.error('booking notification failed:', team.status, team.detail);
+    /* The record is already stored at this point. If it saved, the booking
+       genuinely happened, and calling it a failure would be the same lie in
+       the opposite direction - so report the mail failure truthfully instead. */
+    if (stored && stored.stored) {
+      return res.status(200).json({
+        ok: true, booked: true, reference: ref,
+        confirmationSent: false, teamNotified: false,
+      });
+    }
     return res.status(team.status).json({
+      ok: false, booked: false, code: 'delivery_failed',
       error: 'We could not send that. Please email us directly.',
     });
   }
@@ -437,5 +504,8 @@ export default async function handler(req, res) {
   });
   if (!guest.ok) console.error('client confirmation failed:', guest.detail);
 
-  return res.status(200).json({ ok: true, reference: ref, confirmationSent: guest.ok });
+  return res.status(200).json({
+    ok: true, booked: true, reference: ref,
+    confirmationSent: guest.ok, teamNotified: true,
+  });
 }
