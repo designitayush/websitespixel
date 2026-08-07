@@ -22,7 +22,7 @@
      07 Hero + work set-piece   14 Tech stack
                                 15 Final CTA · 16 Footer · 17 FAB
                                 18 Case-study modal
-                                19 Responsive · 20 Reduced motion
+                                19 Responsive · 20 Reduced motion · 21 Touch targets
    ============================================================ */
 
 /* ============ 01 · FONTS & TOKENS ============ */
@@ -2787,4 +2787,27 @@ em { font-style: normal; }
 @media (max-width: 720px) {
   .gs-hero::before, .wk-hero::before, .ab-hero::before, .cs-cover::before,
   .gs-hero::after,  .wk-hero::after,  .ab-hero::after { width: 420px; height: 420px; filter: blur(80px); }
+}
+
+
+/* ============ 21 · TOUCH TARGETS ============ */
+
+/* Thumbs want 44px; these three links sit at 20-32px. Grow the hit
+   area with a pseudo-element so nothing shifts visually. */
+@media (max-width: 900px) {
+     .story-link,
+     .footer-mail,
+     .menu-mail a { position: relative; }
+
+  .story-link::after,
+     .footer-mail::after,
+     .menu-mail a::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 44px;
+            transform: translateY(-50%);
+     }
 }

@@ -117,10 +117,14 @@
     /* ---------- Showcase reel ---------- */
     var stage = document.getElementById('store-stage');
     var media = document.getElementById('showcase-media');
-    if (stage) {
-      var slides = stage.querySelectorAll('.store-slide');
-      /* The stage now holds a looping video instead of slides. */
-      if (!slides.length) return;
+    var slides = stage ? stage.querySelectorAll('.store-slide') : [];
+    /* The stage holds a looping video now, so there are no slides to cycle.
+       A bare `return` used to sit here, which did not skip the reel: it left
+       main() outright and took every feature defined below it with it - the
+       case-study modal, the bento spotlight, the floating call button and
+       the newsletter form all silently stopped being wired up. Gate the
+       block instead of leaving the function. */
+    if (stage && slides.length) {
       var dots = document.querySelectorAll('.store-dot');
       var chromeUrl = document.getElementById('chrome-url');
       var current = 0, timer = null, visible = true;
@@ -472,6 +476,9 @@
     }
 
     /* ---------- Newsletter ---------- */
+    /* This used to fake it: a 700ms timer, a cheerful message, and the
+       address dropped on the floor. Now it posts to /api/subscribe, which
+       stores the reader before it thanks them. */
     var nlForm = document.getElementById('nl-form');
     var nlMsg = document.getElementById('nl-msg');
     if (nlForm && nlMsg) {
@@ -480,22 +487,53 @@
         var input = document.getElementById('nl-email');
         var btn = nlForm.querySelector('button');
         var val = (input.value || '').trim();
+
+        /* Spam-clicking the button should do nothing, not queue five signups. */
+        if (btn.disabled) return;
+
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val)) {
           nlMsg.textContent = 'Enter a valid email address.';
           nlMsg.classList.add('is-error');
           input.focus();
           return;
         }
+
         nlMsg.classList.remove('is-error');
+        nlMsg.textContent = '';
         btn.disabled = true;
         var label = btn.textContent;
         btn.textContent = 'Subscribing…';
-        setTimeout(function () {
+        if (window.wpTrack) window.wpTrack('newsletter_submitted');
+
+        var ctx = window.WPCTX || {};
+        fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: val,
+            utm: ctx.utm || '',
+            referrer: ctx.referrer || '',
+            landing: ctx.landing || '',
+            timezone: ctx.tz || ''
+          })
+        }).then(function (res) {
+          return res.json().catch(function () { return {}; }).then(function (b) {
+            return { ok: res.ok, body: b };
+          });
+        }).then(function (r) {
+          if (!r.ok) throw new Error(r.body.error || 'That did not go through.');
+          nlForm.reset();
+          nlMsg.textContent = 'You\u2019re on the list. A confirmation is on its way.';
+          if (window.wpTrack) window.wpTrack('newsletter_subscribed');
+        }).catch(function (err) {
+          /* Say what happened and leave a door open. */
+          nlMsg.textContent = err.message +
+            ' Email teamwebsitespixel@gmail.com and we will add you by hand.';
+          nlMsg.classList.add('is-error');
+        }).then(function () {
           btn.disabled = false;
           btn.textContent = label;
-          nlForm.reset();
-          nlMsg.textContent = 'You’re on the list. Talk soon.';
-        }, 700);
+        });
       });
     }
 
@@ -630,6 +668,40 @@ window.addEventListener('load', function () {
   });
 })();
 
+/* Attribution + funnel events. A tiny shim so the booking flow can report to
+   whatever analytics happens to be on the page without knowing which one. */
+(function () {
+  var KEY = 'wp_ctx';
+  var ctx = null;
+  try { ctx = JSON.parse(sessionStorage.getItem(KEY) || 'null'); } catch (e) { ctx = null; }
+  if (!ctx) {
+    var q = new URLSearchParams(location.search);
+    var utm = [];
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+      'gclid', 'fbclid'].forEach(function (k) {
+      if (q.get(k)) utm.push(k + '=' + q.get(k));
+    });
+    ctx = {
+      utm: utm.join('&'),
+      referrer: document.referrer || '',
+      landing: location.origin + location.pathname
+    };
+    try { sessionStorage.setItem(KEY, JSON.stringify(ctx)); } catch (e) {}
+  }
+  try { ctx.tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; }
+  catch (e) { ctx.tz = ''; }
+  window.WPCTX = ctx;
+
+  /* Fire and forget: every sink is optional and none of them may throw. */
+  window.wpTrack = function (name, props) {
+    var data = props || {};
+    try { if (window.dataLayer) window.dataLayer.push({ event: name }); } catch (e) {}
+    try { if (window.clarity) window.clarity('event', name); } catch (e) {}
+    try { if (window.va) window.va('event', { name: name, data: data }); } catch (e) {}
+    try { if (window.gtag) window.gtag('event', name, data); } catch (e) {}
+  };
+})();
+
 /* Booking: three guided steps, then one POST to /api/book.
    Its own scope so it never depends on the animation branches above. */
 (function () {
@@ -749,6 +821,7 @@ window.addEventListener('load', function () {
     drawMonth();
     drawSlots();
     syncNext();
+    wpTrack('booking_date_selected');
   }
 
   function drawSlots() {
@@ -763,6 +836,7 @@ window.addEventListener('load', function () {
         document.getElementById('sel-when').textContent = picked.label + ', ' + localLabel(t);
         drawSlots();
         syncNext();
+      wpTrack('booking_time_selected');
       });
       slotGrid.appendChild(b);
     });
@@ -778,7 +852,11 @@ window.addEventListener('load', function () {
     note.textContent = 'Times shown in your local timezone' + (z ? ' (' + z + ')' : '') + '.';
   }
 
-  nextBtn.addEventListener('click', function () { if (picked.date && picked.time) step(2); });
+  nextBtn.addEventListener('click', function () {
+    if (!picked.date || !picked.time) return;
+    wpTrack('booking_details_opened');
+    step(2);
+  });
 
   prev.addEventListener('click', function () { view.setMonth(view.getMonth() - 1); drawMonth(); });
   next.addEventListener('click', function () { view.setMonth(view.getMonth() + 1); drawMonth(); });
@@ -807,8 +885,11 @@ window.addEventListener('load', function () {
     status.classList.remove('is-bad');
 
     var data = {
-      date: picked.label, time: picked.time,
-      name: form.name.value, email: form.email.value, website: form.website.value,
+      date: picked.label, dateISO: picked.date, time: picked.time,
+      timezone: WPCTX.tz, utm: WPCTX.utm,
+      referrer: WPCTX.referrer, landing: WPCTX.landing,
+      name: form.name.value, email: form.email.value, phone: form.phone ? form.phone.value : '',
+      company: form.company ? form.company.value : '', website: form.website.value,
       service: form.service.value, project: form.project.value,
       timezone: visitorZone(),
       company_url: form.company_url.value, elapsed: Date.now() - opened
@@ -820,6 +901,9 @@ window.addEventListener('load', function () {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email)) errs.email = 'That email address does not look right.';
     if (Object.keys(errs).length) { showErrors(errs); return; }
     if (!picked.date || !picked.time) { step(1); return; }
+
+    wpTrack('booking_submitted');
+
 
     submit.disabled = true;
     submit.classList.add('is-sending');
@@ -838,6 +922,8 @@ window.addEventListener('load', function () {
         form.querySelectorAll('.book-pane').forEach(function (p) { p.classList.remove('is-active'); });
         var done = form.querySelector('[data-pane="done"]');
         done.hidden = false;
+
+        wpTrack('booking_confirmed');
         document.getElementById('done-when').textContent = picked.label + ' at ' + picked.time;
         document.querySelectorAll('.book-steps li').forEach(function (li) {
           li.classList.remove('is-current'); li.classList.add('is-done');
@@ -858,6 +944,17 @@ window.addEventListener('load', function () {
       submit.querySelector('.bs-label').textContent = 'Confirm booking';
     });
   });
+  /* Slots are published in our working hours, not the visitor's. Saying so out
+     loud is the difference between a kept call and a missed one. */
+  (function () {
+    if (!slotGrid || !slotGrid.parentNode) return;
+    var tzNote = document.createElement('p');
+    tzNote.className = 'slot-note';
+    tzNote.style.cssText = 'margin:10px 0 0;font-size:12px;line-height:1.5;opacity:.6';
+    tzNote.textContent = 'All times are India Standard Time. Your confirmation'
+      + ' email shows the same slot in your own timezone.';
+    slotGrid.parentNode.appendChild(tzNote);
+  })();
 
   drawMonth();
 })();
