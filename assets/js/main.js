@@ -1257,3 +1257,144 @@ window.addEventListener('load', function () {
     t.style.cursor = 'pointer';
   });
 })();
+
+/* Liquid glass: the specular highlight follows the cursor.
+   Writes two CSS custom properties and nothing else — no layout reads
+   inside the handler, and the paint stays on the compositor. Skipped
+   entirely for reduced-motion and for coarse pointers, where there is no
+   cursor to track and the work would be wasted. */
+(function () {
+  if (window.matchMedia) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (window.matchMedia('(hover: none)').matches) return;
+  }
+  var SEL = '.btn-primary, .btn-ghost, .lg, .hero-cats a, .pv-card, .cpt-card, .bw-card, .vl-card, .pr-card';
+  var frame = null, queue = [];
+
+  function flush() {
+    frame = null;
+    for (var i = 0; i < queue.length; i++) {
+      var q = queue[i];
+      q.el.style.setProperty('--mx', q.x + '%');
+      q.el.style.setProperty('--my', q.y + '%');
+    }
+    queue.length = 0;
+  }
+
+  document.addEventListener('pointermove', function (e) {
+    var el = e.target.closest ? e.target.closest(SEL) : null;
+    if (!el) return;
+    var r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    queue.push({
+      el: el,
+      x: Math.round(((e.clientX - r.left) / r.width) * 100),
+      y: Math.round(((e.clientY - r.top) / r.height) * 100)
+    });
+    if (!frame) frame = requestAnimationFrame(flush);
+  }, { passive: true });
+})();
+
+/* Signature CTA behaviour.
+
+   Two jobs: give every primary button its shimmer layer, and drop a fluid
+   wave where the pointer actually landed. Both are pure transform/opacity
+   so they stay on the compositor, and both are skipped under
+   prefers-reduced-motion. The ripple element removes itself. */
+(function () {
+  var reduced = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* The sheen needs its own clipped layer; adding it here keeps the markup
+     clean and means any button added later inherits it automatically. */
+  function dress(root) {
+    var list = (root || document).querySelectorAll('.btn-primary:not([data-lg])');
+    [].slice.call(list).forEach(function (b) {
+      b.setAttribute('data-lg', '1');
+      if (reduced) return;
+      var s = document.createElement('span');
+      s.className = 'lg-sheen';
+      s.setAttribute('aria-hidden', 'true');
+      b.insertBefore(s, b.firstChild);
+    });
+  }
+  dress();
+
+  /* Buttons built by JS later (the case study modal, for one) get dressed
+     when they appear rather than being missed. */
+  if ('MutationObserver' in window) {
+    new MutationObserver(function (muts) {
+      for (var i = 0; i < muts.length; i++) {
+        if (muts[i].addedNodes.length) { dress(); return; }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
+  if (reduced) return;
+
+  document.addEventListener('pointerdown', function (e) {
+    var b = e.target.closest ? e.target.closest('.btn-primary, .btn-ghost') : null;
+    if (!b || b.disabled) return;
+    var r = b.getBoundingClientRect();
+    if (!r.width) return;
+    var d = Math.max(r.width, r.height);
+    var w = document.createElement('span');
+    w.className = 'lg-ripple';
+    w.setAttribute('aria-hidden', 'true');
+    w.style.width = w.style.height = d + 'px';
+    w.style.left = (e.clientX - r.left) + 'px';
+    w.style.top = (e.clientY - r.top) + 'px';
+    b.appendChild(w);
+    w.addEventListener('animationend', function () { w.remove(); });
+  }, { passive: true });
+})();
+
+/* Services mega menu.
+
+   Hover to open, with a short close delay so the pointer can travel from
+   the nav item down into the panel without it vanishing underneath them —
+   the single most common flaw in dropdowns of this kind. Keyboard opens
+   on focus and closes on Escape, and the whole thing is inert below the
+   breakpoint where the mobile menu takes over. */
+(function () {
+  var wrap = document.querySelector('[data-mega]');
+  if (!wrap) return;
+  var trigger = wrap.querySelector('a[aria-expanded]');
+  var panel = wrap.querySelector('.mm');
+  if (!trigger || !panel) return;
+
+  var closeTimer = null;
+  var CLOSE_DELAY = 220;
+
+  function open() {
+    clearTimeout(closeTimer);
+    if (window.matchMedia && window.matchMedia('(max-width: 991px)').matches) return;
+    wrap.classList.add('is-open');
+    trigger.setAttribute('aria-expanded', 'true');
+  }
+  function close(now) {
+    clearTimeout(closeTimer);
+    closeTimer = setTimeout(function () {
+      wrap.classList.remove('is-open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }, now ? 0 : CLOSE_DELAY);
+  }
+
+  wrap.addEventListener('pointerenter', open);
+  wrap.addEventListener('pointerleave', function () { close(); });
+  trigger.addEventListener('focus', open);
+  wrap.addEventListener('focusin', open);
+  wrap.addEventListener('focusout', function (e) {
+    if (!wrap.contains(e.relatedTarget)) close(true);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && wrap.classList.contains('is-open')) {
+      close(true); trigger.focus();
+    }
+  });
+  /* Tapping the trigger on a hybrid device should toggle, not navigate away. */
+  trigger.addEventListener('click', function (e) {
+    if (window.matchMedia && window.matchMedia('(hover: none)').matches) return;
+    if (!wrap.classList.contains('is-open')) { e.preventDefault(); open(); }
+  });
+})();

@@ -2859,3 +2859,457 @@ em { font-style: normal; }
   .b-card, .bento > article, .bento > a, .bento img { transition: none !important; }
   .bento > article:hover, .bento > a:hover, .b-card:hover { transform: none; }
 }
+
+/* ============ 44 · SERVICE PAGES ============ */
+.sv-quotes { list-style: none; margin: 1.4rem 0 0; padding: 0; display: grid; gap: .9rem; }
+.sv-quotes li {
+  position: relative; padding: 1rem 1.2rem 1rem 2.6rem;
+  border-left: 2px solid hsl(var(--csh) 60% 55% / .5);
+  background: var(--surface); border-radius: 0 12px 12px 0;
+  color: var(--text); font-size: .97rem; line-height: 1.65;
+}
+.sv-quotes li::before { content: '\201C'; position: absolute; left: .9rem; top: .55rem;
+  font-family: var(--serif); font-size: 1.7rem; color: hsl(var(--csh) 62% 66%); line-height: 1; }
+
+.sv-steps { list-style: none; counter-reset: sv; margin: 2.4rem 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+  background: var(--border); border: 1px solid var(--border);
+  border-radius: var(--r-card); overflow: hidden; }
+.sv-steps li { background: var(--bg); padding: 1.5rem 1.4rem; display: flex; flex-direction: column; gap: .4rem; }
+.sv-num { font-family: var(--mono); font-size: .74rem; color: hsl(var(--csh) 62% 70%); }
+.sv-steps b { font-weight: 500; font-size: 1rem; color: var(--text); }
+.sv-steps li > span:last-child { color: var(--text-2); font-size: .9rem; line-height: 1.6; }
+
+.sv-cases { grid-template-columns: repeat(3, 1fr); margin-top: 2.4rem; }
+.sv-mid-cta { margin: 2rem 0 0; }
+.sv-mid-cta a { color: var(--text); text-decoration: none; font-size: .95rem;
+  border-bottom: 1px solid var(--border-strong); padding-bottom: .25rem;
+  transition: border-color .35s var(--ease); }
+.sv-mid-cta a:hover { border-color: hsl(var(--csh) 62% 60%); }
+.sv-mid-cta a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+@media (max-width: 900px) {
+  .sv-steps { grid-template-columns: 1fr; }
+  .sv-cases { grid-template-columns: 1fr; }
+}
+/* Service card titles are now links, styled as the heading they already were. */
+.svc-link { text-decoration: none; color: inherit; display: block; }
+.svc-link:hover h3 { color: var(--accent); }
+.svc-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   45 · LIQUID GLASS — the interaction language
+   ───────────────────────────────────────────────────────────────────────
+   Black crystal rather than white frost, so it belongs to this palette
+   instead of sitting on top of it. Every surface is built from layers:
+   tint, gradient, noise, inner shadow, edge highlight, specular sweep.
+   Never a single rgba fill.
+
+   One deliberate exception, documented at section 46: surfaces that sit
+   over the animated hero wall do NOT use backdrop-filter. It re-samples
+   a moving 20-image collage every frame and measured 16fps here before.
+   Those surfaces fake the same look with layered gradients instead.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+  --lg-tint:        rgba(255,255,255,.055);
+  --lg-tint-hi:     rgba(255,255,255,.10);
+  --lg-edge-top:    rgba(255,255,255,.28);
+  --lg-edge-bottom: rgba(255,255,255,.06);
+  --lg-inner:       inset 0 1px 0 var(--lg-edge-top), inset 0 -1px 0 var(--lg-edge-bottom);
+  --lg-blur:        blur(22px) saturate(150%);
+  --lg-ease:        cubic-bezier(.22,.61,.36,1);
+  --lg-dur:         .34s;
+  --lg-noise:       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
+  /* Ambient · contact · glow · accent — layered, never one harsh drop. */
+  --lg-shadow:      0 1px 2px rgba(0,0,0,.34), 0 8px 20px -8px rgba(0,0,0,.55),
+                    0 22px 48px -24px rgba(0,0,0,.75);
+  --lg-shadow-hi:   0 1px 2px rgba(0,0,0,.30), 0 12px 28px -10px rgba(0,0,0,.55),
+                    0 30px 64px -26px rgba(0,0,0,.75), 0 0 26px -6px rgba(67,207,156,.22);
+}
+
+/* ── The material ──────────────────────────────────────────────────── */
+.lg, .btn-ghost, .hero-cats a, .pv-card, .cpt-card, .bw-card, .vl-card, .pr-card, .gs-card {
+  position: relative; isolation: isolate;
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.02) 42%, rgba(0,0,0,.14) 100%),
+    var(--lg-noise);
+  background-color: var(--lg-tint);
+  box-shadow: var(--lg-inner), var(--lg-shadow);
+  border: 1px solid rgba(255,255,255,.10);
+  transition: transform var(--lg-dur) var(--lg-ease),
+              box-shadow var(--lg-dur) var(--lg-ease),
+              background-color var(--lg-dur) var(--lg-ease),
+              border-color var(--lg-dur) var(--lg-ease);
+}
+/* Specular sweep — the light that moves across the surface. */
+.lg::after, .btn-ghost::after, .hero-cats a::after,
+.pv-card::after, .cpt-card::after, .bw-card::after, .vl-card::after, .pr-card::after {
+  content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  border-radius: inherit; opacity: 0;
+  background: radial-gradient(
+    22rem 22rem at var(--mx, 50%) var(--my, 0%),
+    rgba(255,255,255,.16) 0%, rgba(255,255,255,.05) 32%, transparent 62%);
+  transition: opacity var(--lg-dur) var(--lg-ease);
+}
+.lg:hover::after, .btn-ghost:hover::after, .hero-cats a:hover::after,
+.pv-card:hover::after, .cpt-card:hover::after, .bw-card:hover::after,
+.vl-card:hover::after, .pr-card:hover::after { opacity: 1; }
+
+/* ── Buttons ───────────────────────────────────────────────────────── */
+.btn {
+  transition: transform var(--lg-dur) var(--lg-ease),
+              box-shadow var(--lg-dur) var(--lg-ease),
+              background-color var(--lg-dur) var(--lg-ease),
+              border-color var(--lg-dur) var(--lg-ease),
+              opacity var(--lg-dur) var(--lg-ease);
+  will-change: transform;
+}
+.btn:hover { opacity: 1; }                       /* the old flat fade, retired */
+
+.btn-primary {
+  position: relative; isolation: isolate; overflow: hidden;
+  background-color: #f2f4f3;
+  background-image: linear-gradient(180deg, rgba(255,255,255,.85) 0%, rgba(255,255,255,0) 46%);
+  color: var(--bg);
+  border: 1px solid rgba(255,255,255,.5);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(0,0,0,.10),
+              0 1px 2px rgba(0,0,0,.30), 0 10px 24px -10px rgba(0,0,0,.6),
+              0 24px 50px -26px rgba(0,0,0,.7);
+}
+.btn-primary::after {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0;
+  background: radial-gradient(12rem 12rem at var(--mx,50%) var(--my,50%),
+    rgba(255,255,255,.85) 0%, transparent 60%);
+  transition: opacity var(--lg-dur) var(--lg-ease);
+  mix-blend-mode: soft-light;
+}
+.btn-primary:hover {
+  transform: translateY(-1.5px) scale(1.014);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(0,0,0,.10),
+              0 2px 4px rgba(0,0,0,.28), 0 16px 34px -12px rgba(0,0,0,.62),
+              0 34px 68px -28px rgba(0,0,0,.72), 0 0 30px -8px rgba(67,207,156,.30);
+}
+.btn-primary:hover::after { opacity: 1; }
+.btn-primary:active { transform: translateY(0) scale(.985);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,.18), 0 1px 2px rgba(0,0,0,.3); }
+
+.btn-ghost { color: var(--text); }
+.btn-ghost:hover {
+  transform: translateY(-1.5px);
+  background-color: var(--lg-tint-hi);
+  border-color: rgba(255,255,255,.22);
+  box-shadow: var(--lg-inner), var(--lg-shadow-hi);
+}
+.btn-ghost:active { transform: translateY(0) scale(.99);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.30); }
+
+/* Focus: a soft emerald ring, not a browser outline. */
+.btn:focus-visible, .hero-cats a:focus-visible, .lg:focus-visible {
+  outline: none;
+  box-shadow: var(--lg-inner), var(--lg-shadow),
+              0 0 0 2px rgba(67,207,156,.55), 0 0 22px -2px rgba(67,207,156,.45);
+}
+.btn[disabled], .btn[aria-disabled="true"] {
+  opacity: .45; filter: saturate(.5); box-shadow: var(--lg-inner); transform: none;
+}
+
+/* Icons sit inside the glass rather than on it. */
+.btn .arr, .btn .arr2, .btn svg {
+  filter: drop-shadow(0 1px 0 rgba(255,255,255,.35));
+  transition: transform var(--lg-dur) var(--lg-ease);
+}
+.btn:hover .arr2 { transform: translateX(3px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn, .lg, .btn-ghost, .pv-card, .cpt-card, .bw-card, .vl-card, .pr-card { transition: none !important; }
+  .btn:hover, .btn-primary:hover, .btn-ghost:hover { transform: none !important; }
+  .lg::after, .btn-primary::after, .btn-ghost::after { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   46 · THE HERO STRIP — one floating glass panel
+   ───────────────────────────────────────────────────────────────────────
+   Four segments inside a single pane, divided by glowing hairlines rather
+   than gaps, so it reads as one object floating over the hero.
+
+   NO backdrop-filter here. This strip sits directly over the animated
+   wall — 20 screenshots moving continuously — and a backdrop-filter
+   re-samples that region every frame. Measured 16fps when this site
+   tried it before. The layered gradients below produce the same read at
+   a fraction of the cost.
+   ═══════════════════════════════════════════════════════════════════════ */
+.hero-cats {
+  position: relative; isolation: isolate;
+  border-radius: 22px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,.11);
+  background-color: rgba(10,11,13,.72);
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.02) 38%, rgba(0,0,0,.30) 100%),
+    var(--lg-noise);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.24), inset 0 -1px 0 rgba(255,255,255,.05),
+    0 2px 6px rgba(0,0,0,.4), 0 20px 46px -18px rgba(0,0,0,.7),
+    0 44px 90px -40px rgba(0,0,0,.85);
+}
+/* A slow light sweep while idle — roughly every 9 seconds. */
+.hero-cats::before {
+  content: ''; position: absolute; inset: -40% -60%; z-index: 0; pointer-events: none;
+  background: linear-gradient(72deg, transparent 42%,
+    rgba(255,255,255,.055) 49%, rgba(67,207,156,.05) 51%, transparent 58%);
+  animation: lg-sweep 9s var(--lg-ease) infinite;
+}
+@keyframes lg-sweep {
+  0%, 62% { transform: translateX(-60%); opacity: 0; }
+  70%     { opacity: 1; }
+  100%    { transform: translateX(60%); opacity: 0; }
+}
+.hero-cats a {
+  position: relative; z-index: 1;
+  background: none; border: 0; box-shadow: none; border-radius: 0;
+  transition: background-color var(--lg-dur) var(--lg-ease), transform var(--lg-dur) var(--lg-ease);
+}
+/* Glowing hairline dividers instead of borders. */
+.hero-cats a + a::before {
+  content: ''; position: absolute; left: 0; top: 18%; bottom: 18%; width: 1px; z-index: 2;
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,.16) 30%,
+              rgba(67,207,156,.20) 50%, rgba(255,255,255,.16) 70%, transparent);
+}
+.hero-cats a:hover {
+  background-color: rgba(255,255,255,.07);
+  transform: translateY(-1px);
+}
+.hero-cats a:hover::after { opacity: 1; }
+.hero-cats a:focus-visible {
+  outline: none; background-color: rgba(255,255,255,.08);
+  box-shadow: inset 0 0 0 2px rgba(67,207,156,.5);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-cats::before { animation: none; opacity: 0; }
+  .hero-cats a:hover { transform: none; }
+}
+
+/* ── Cards inherit the material, keeping their own accent hue ────────── */
+.pv-card:hover, .cpt-card:hover, .bw-card:hover, .vl-card:hover {
+  background-color: var(--lg-tint-hi);
+  box-shadow: var(--lg-inner), var(--lg-shadow-hi);
+}
+/* Surfaces away from the moving hero can afford real blur. */
+.pr-card, .vl-card, .book-panel, .fa-panel { backdrop-filter: var(--lg-blur); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   47 · SIGNATURE CTA — the living surface
+   ───────────────────────────────────────────────────────────────────────
+   What makes it ours rather than Apple's: emerald liquid that drifts
+   slowly *behind* the glass, so the button appears to have something
+   moving inside it rather than a highlight painted on top. The shimmer
+   crosses only occasionally, and the glow only ever appears on intent.
+   ═══════════════════════════════════════════════════════════════════════ */
+.btn-primary { overflow: hidden; transform: translateZ(0); }
+
+/* Layer 1 — the liquid. Two offset radial blooms drifting out of phase,
+   clipped by the capsule, sitting under the glass surface. */
+.btn-primary::before {
+  content: ''; position: absolute; inset: -70%; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(38% 46% at 28% 42%, rgba(67,207,156,.55) 0%, transparent 62%),
+    radial-gradient(34% 40% at 72% 58%, rgba(0,190,200,.42) 0%, transparent 62%);
+  filter: blur(14px);
+  opacity: .30;
+  animation: lg-liquid 14s cubic-bezier(.42,0,.58,1) infinite;
+  transition: opacity var(--lg-dur) var(--lg-ease);
+}
+@keyframes lg-liquid {
+  0%   { transform: translate3d(-6%, -3%, 0) rotate(0deg)   scale(1); }
+  33%  { transform: translate3d( 5%,  4%, 0) rotate(42deg)  scale(1.12); }
+  66%  { transform: translate3d(-3%,  5%, 0) rotate(-28deg) scale(1.05); }
+  100% { transform: translate3d(-6%, -3%, 0) rotate(0deg)   scale(1); }
+}
+.btn-primary:hover::before { opacity: .5; }
+
+/* Layer 2 — the shimmer. Crosses roughly every 7s, and again on hover. */
+.btn-primary .lg-sheen {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none; border-radius: inherit;
+  overflow: hidden;
+}
+.btn-primary .lg-sheen::before {
+  content: ''; position: absolute; top: -50%; bottom: -50%; width: 42%; left: -60%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.75), transparent);
+  transform: skewX(-18deg);
+  animation: lg-sheen 7s var(--lg-ease) infinite;
+}
+@keyframes lg-sheen {
+  0%, 72% { left: -60%; }
+  88%     { left: 118%; }
+  100%    { left: 118%; }
+}
+.btn-primary:hover .lg-sheen::before { animation-duration: 2.4s; }
+
+/* The label must sit above every layer. */
+.btn-primary > *:not(.lg-sheen):not(.lg-ripple) { position: relative; z-index: 3; }
+
+/* Layer 3 — the click. A fluid wave, not a flat circle. */
+.lg-ripple {
+  position: absolute; z-index: 2; border-radius: 50%; pointer-events: none;
+  transform: translate(-50%, -50%) scale(0);
+  background: radial-gradient(circle, rgba(255,255,255,.55) 0%, rgba(67,207,156,.28) 45%, transparent 70%);
+  animation: lg-ripple .62s cubic-bezier(.22,.61,.36,1) forwards;
+}
+@keyframes lg-ripple {
+  0%   { transform: translate(-50%,-50%) scale(0);   opacity: .9; }
+  100% { transform: translate(-50%,-50%) scale(2.6); opacity: 0; }
+}
+
+/* ── Hierarchy ──────────────────────────────────────────────────────── */
+/* Primary keeps the liquid. Secondary gets the glass without it. Text
+   buttons get motion only, so three tiers read at a glance. */
+.btn-ghost::before, .nav-cta.btn-ghost::before { content: none; }
+
+/* The nav CTA is the centrepiece — slightly stronger glow, always visible. */
+.nav-cta.btn-primary {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.95), inset 0 -1px 0 rgba(0,0,0,.10),
+              0 1px 2px rgba(0,0,0,.3), 0 10px 24px -10px rgba(0,0,0,.6),
+              0 0 22px -6px rgba(67,207,156,.28);
+}
+.nav-cta.btn-primary:hover { box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 rgba(0,0,0,.1),
+  0 2px 5px rgba(0,0,0,.3), 0 18px 38px -12px rgba(0,0,0,.62), 0 0 34px -6px rgba(67,207,156,.45); }
+
+/* ── States ─────────────────────────────────────────────────────────── */
+.btn.is-loading { pointer-events: none; }
+.btn.is-loading .lg-sheen::before { animation-duration: 1.1s; }
+.btn.is-loading::before { opacity: .62; animation-duration: 4s; }
+
+.btn.is-done {
+  background-color: var(--accent) !important;
+  background-image: linear-gradient(180deg, rgba(255,255,255,.55), transparent 55%) !important;
+  color: var(--accent-ink) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 0 0 30px -6px rgba(67,207,156,.6);
+}
+.btn.is-done::before { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary::before, .btn-primary .lg-sheen::before { animation: none !important; }
+  .lg-ripple { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   48 · SERVICES MEGA MENU
+   ═══════════════════════════════════════════════════════════════════════ */
+.mm-wrap { position: static; }
+.mm-caret {
+  display: inline-block; width: 5px; height: 5px; margin-left: .38rem;
+  border-right: 1.2px solid currentColor; border-bottom: 1.2px solid currentColor;
+  transform: translateY(-1.5px) rotate(45deg);
+  transition: transform .3s var(--lg-ease); opacity: .6;
+}
+.mm-wrap.is-open .mm-caret { transform: translateY(0) rotate(225deg); opacity: 1; }
+
+.mm {
+  position: absolute; top: calc(100% + 10px); left: 50%; z-index: 60;
+  width: min(880px, calc(100vw - 3rem));
+  transform: translate(-50%, -8px) scale(.985);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .28s var(--lg-ease), transform .34s var(--lg-ease), visibility 0s .34s;
+}
+.mm-wrap.is-open .mm {
+  opacity: 1; visibility: visible; pointer-events: auto;
+  transform: translate(-50%, 0) scale(1);
+  transition: opacity .3s var(--lg-ease), transform .38s var(--lg-ease), visibility 0s;
+}
+.mm-inner {
+  border-radius: 22px; padding: 1.1rem; overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  background-color: rgba(10,11,13,.82);
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.02) 40%, rgba(0,0,0,.3) 100%),
+    var(--lg-noise);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), inset 0 -1px 0 rgba(255,255,255,.05),
+              0 3px 8px rgba(0,0,0,.4), 0 26px 60px -22px rgba(0,0,0,.75),
+              0 56px 110px -48px rgba(0,0,0,.9);
+}
+.mm-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .3rem; }
+.mm-item {
+  display: flex; align-items: flex-start; gap: .85rem;
+  padding: .8rem .9rem; border-radius: 14px; text-decoration: none;
+  position: relative; isolation: isolate;
+  transition: background-color .28s var(--lg-ease), transform .28s var(--lg-ease);
+}
+.mm-item::after {
+  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; opacity: 0;
+  background: radial-gradient(14rem 14rem at var(--mx,50%) var(--my,50%),
+              hsl(var(--csh) 60% 55% / .16) 0%, transparent 62%);
+  transition: opacity .28s var(--lg-ease);
+}
+.mm-item:hover, .mm-item:focus-visible {
+  background-color: rgba(255,255,255,.055); transform: translateX(2px); outline: none;
+}
+.mm-item:hover::after, .mm-item:focus-visible::after { opacity: 1; }
+.mm-item:focus-visible { box-shadow: inset 0 0 0 1.5px rgba(67,207,156,.55); }
+.mm-ico {
+  flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+  color: hsl(var(--csh) 62% 72%);
+  background: hsl(var(--csh) 55% 45% / .14);
+  border: 1px solid hsl(var(--csh) 55% 60% / .22);
+  transition: transform .3s var(--lg-ease), background-color .3s var(--lg-ease);
+}
+.mm-ico svg { width: 17px; height: 17px; }
+.mm-item:hover .mm-ico { transform: scale(1.06); background: hsl(var(--csh) 55% 48% / .22); }
+.mm-txt { display: flex; flex-direction: column; gap: .18rem; min-width: 0; }
+.mm-txt b { font-weight: 500; font-size: .93rem; color: var(--text); }
+.mm-txt i { font-style: normal; font-size: .8rem; line-height: 1.45; color: var(--text-3); }
+
+.mm-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  margin-top: .9rem; padding: .85rem .9rem 0; border-top: 1px solid rgba(255,255,255,.08);
+  font-size: .84rem; color: var(--text-3);
+}
+.mm-cta { color: var(--text); text-decoration: none; display: inline-flex; align-items: center; gap: .4rem; }
+.mm-cta em { font-style: normal; transition: transform .3s var(--lg-ease); }
+.mm-cta:hover em { transform: translateX(3px); }
+.mm-cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+@media (max-width: 991px) { .mm { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .mm, .mm-item, .mm-ico, .mm-caret, .mm-cta em { transition: none !important; }
+  .mm-item:hover { transform: none; }
+}
+
+/* ── 48b · Mega menu corrections ─────────────────────────────────────
+   The wrapper was an inline span, so it dropped out of the nav's flex
+   rhythm and the Services label sat off the baseline of its siblings.
+   It now behaves exactly like the plain links either side of it. */
+.nav-links .mm-wrap { display: inline-flex; align-items: center; }
+.nav-links .mm-wrap > a {
+  display: inline-flex; align-items: center;
+  padding: 8px 14px; border-radius: 999px;
+  font-size: 1.02rem; color: #dde1e5;
+  transition: color .3s, background .3s;
+}
+.nav-links .mm-wrap > a:hover,
+.mm-wrap.is-open > a { color: #fff; background: rgba(255,255,255,.08); }
+
+/* More air, a calmer grid, and type that settles. */
+.mm { width: min(760px, calc(100vw - 3rem)); }
+.mm-inner { padding: .9rem; border-radius: 24px; }
+.mm-grid { gap: .15rem; }
+.mm-item { padding: .78rem .85rem; gap: .8rem; border-radius: 13px; align-items: center; }
+.mm-ico { width: 34px; height: 34px; border-radius: 9px; }
+.mm-ico svg { width: 16px; height: 16px; }
+.mm-txt b { font-size: .9rem; letter-spacing: -.005em; }
+.mm-txt i { font-size: .765rem; line-height: 1.4; }
+.mm-foot { margin-top: .7rem; padding: .8rem .85rem 0; font-size: .8rem; }
+.mm-item:hover { transform: none; }        /* the nudge read as jitter */
+
+/* ── 48c · Services reads as a plain nav link ────────────────────────
+   No caret, no chevron, nothing to mark it out. It inherits exactly what
+   its siblings inherit, so the only thing that happens is the panel
+   appearing on hover. */
+.mm-caret { display: none !important; }
+.nav-links .mm-wrap > a {
+  font-family: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-decoration: none;
+  gap: 0;
+}
