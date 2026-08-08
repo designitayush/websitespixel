@@ -448,7 +448,7 @@
 
     /* ---------- Bento spotlight ---------- */
     if (isDesktop && !reduced) {
-      document.querySelectorAll('.bento-card, .p-step').forEach(function (card) {
+      document.querySelectorAll('.bento-card, .pc-card').forEach(function (card) {
         card.addEventListener('pointermove', function (e) {
           var r = card.getBoundingClientRect();
           card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
@@ -989,32 +989,7 @@ window.addEventListener('load', function () {
   var isDesktop = window.matchMedia('(min-width: 900px)').matches;
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   gsap.registerPlugin(ScrollTrigger);
-  /* ---------- Process: horizontal pan (desktop) ---------- */
-  var pin = document.getElementById('process-pin');
-  var track = document.getElementById('process-track');
-  var barFill = document.getElementById('process-bar-fill');
-  if (pin && track && isDesktop && !reduced) {
-    var getDistance = function () { return Math.max(track.scrollWidth - window.innerWidth, 0); };
-    /* Scroll length is stretched well past the travel distance so each card
-       gets real dwell time instead of flicking past. */
-    var getScroll = function () { return getDistance() * 2.4; };
-    gsap.to(track, {
-      x: function () { return -getDistance(); },
-      ease: 'none',
-      scrollTrigger: {
-        trigger: pin,
-        start: 'top top',
-        end: function () { return '+=' + getScroll(); },
-        pin: true,
-        scrub: 1.35,
-        invalidateOnRefresh: true,
-        onUpdate: function (self) {
-          if (barFill) barFill.style.transform = 'scaleX(' + self.progress + ')';
-        }
-      }
-    });
-  }
-
+  /* Process is a hover accordion now; its own IIFE lives further down. */
 
 })();
 
@@ -1397,4 +1372,110 @@ window.addEventListener('load', function () {
     if (window.matchMedia && window.matchMedia('(hover: none)').matches) return;
     if (!wrap.classList.contains('is-open')) { e.preventDefault(); open(); }
   });
+})();
+
+/* ============================================================
+   TECHNOLOGY WALL
+   ------------------------------------------------------------
+   The lanes are pure CSS: a linear animation to translateX(-50%)
+   over content that repeats. All this does is decide how many
+   times to repeat it.
+
+   That number is not two. A -50% loop only looks seamless if
+   half the track already covers the viewport, and nine logos is
+   about 700px — on a 1440px screen the lane ran out and left a
+   gap. So: repeat the set until half the track clears the
+   viewport, always an even number of sets so the midpoint lands
+   exactly on a set boundary.
+
+   Deliberately its own IIFE rather than another block inside
+   main(): that function has a history of one early branch
+   taking every feature defined below it down with it.
+   ============================================================ */
+(function () {
+  'use strict';
+
+  var wall = document.querySelector('[data-tech-wall]');
+  if (!wall) return;
+
+  var lanes = [].slice.call(wall.querySelectorAll('.tw-track')).map(function (track) {
+    return { track: track, base: [].slice.call(track.children), setWidth: 0 };
+  });
+
+  function copySet(lane) {
+    for (var i = 0; i < lane.base.length; i++) {
+      var copy = lane.base[i].cloneNode(true);
+      copy.setAttribute('aria-hidden', 'true');
+      /* The duplicates are scenery, not a second list of tools. Each chip
+         holds two images now, so clear both. */
+      var imgs = copy.querySelectorAll('img');
+      for (var k = 0; k < imgs.length; k++) imgs[k].setAttribute('alt', '');
+      lane.track.appendChild(copy);
+    }
+  }
+
+  function fill() {
+    var need = window.innerWidth + 120;
+    for (var i = 0; i < lanes.length; i++) {
+      var lane = lanes[i];
+      if (!lane.base.length) continue;
+      if (!lane.setWidth) lane.setWidth = lane.track.scrollWidth;
+      if (!lane.setWidth) continue;
+      var sets = Math.max(2, Math.ceil(need / lane.setWidth) * 2);
+      var have = Math.round(lane.track.children.length / lane.base.length);
+      for (var s = have; s < sets; s++) copySet(lane);
+    }
+  }
+
+  fill();
+
+  /* Widening the window can outrun the lane. Top it up; never trim, because
+     removing items mid-animation would jump the loop. */
+  var pending;
+  window.addEventListener('resize', function () {
+    clearTimeout(pending);
+    pending = setTimeout(fill, 250);
+  });
+})();
+
+/* ============================================================
+   PROCESS ACCORDION
+   ------------------------------------------------------------
+   One card open at a time. Card one is open on load and the row
+   returns to it when the cursor leaves, so the section is never
+   left in a state where nothing is being read.
+
+   The width tween itself is CSS. All this does is move a class.
+   Below 1280px the stylesheet drops the accordion for a plain
+   grid with every card open, and nothing here needs to know.
+   ============================================================ */
+(function () {
+  'use strict';
+
+  var grid = document.querySelector('[data-process-accordion]');
+  if (!grid) return;
+
+  var cards = [].slice.call(grid.querySelectorAll('.pc-card'));
+  if (!cards.length) return;
+
+  function activate(card) {
+    for (var i = 0; i < cards.length; i++) {
+      var on = cards[i] === card;
+      cards[i].classList.toggle('is-active', on);
+      cards[i].setAttribute('aria-expanded', String(on));
+    }
+  }
+
+  cards.forEach(function (card) {
+    card.addEventListener('mouseenter', function () { activate(card); });
+    /* focusin, not focus, so tabbing to the card opens it the same way a
+       cursor would. The element is a real button, so Enter and Space
+       already fire click without any key handling here. */
+    card.addEventListener('focusin', function () { activate(card); });
+    card.addEventListener('click', function () { activate(card); });
+  });
+
+  grid.addEventListener('mouseleave', function () { activate(cards[0]); });
+
+  activate(cards[0]);
 })();

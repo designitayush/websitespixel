@@ -808,115 +808,204 @@ em { font-style: normal; }
 .why-item h3 { font-size: 1.4rem; font-weight: 500; letter-spacing: -0.02em; margin-top: 0.9rem; }
 .why-item p { color: var(--text-2); margin-top: 0.5rem; max-width: 48ch; }
 
-/* ============ 12 · PROCESS (pinned horizontal pan) ============ */
+/* ============ 12 · PROCESS (hover accordion) ============ */
+/* Four cards on one row, and the four of them span the container exactly. The
+   one under the cursor takes ~2.15 shares of the track and the other three
+   take one each; nothing is a fixed pixel width, so the row is flush left and
+   right at any viewport instead of trailing off into empty space. Card one is
+   open on load, and the row returns to it when the cursor leaves, so the
+   section is never in a state where nothing is being read.
 
-.process { overflow: hidden; }
-.process-head { padding-top: clamp(5rem, 9vw, 9rem); }
-.process-pin { position: relative; }
+   Two details carry the whole effect. The paragraph has a hard width rather
+   than 100%, so it is clipped by the card instead of re-wrapping on every
+   frame of the tween — re-wrapping is what makes this judder. And the numeral
+   is anchored to the image wrapper, not the card, which is what gives it that
+   printed-over-the-photo look when the card is open. */
 
-.process-track {
-  display: flex; gap: 18px;
-  padding: clamp(2.5rem, 4vw, 4rem) 4vw 3rem;
-  width: max-content;
+.process {
+  /* The row is a fluid track, not four fixed slabs. Fixed 360/160 widths left
+     ~440px of dead space on the right of a 1320px container on a laptop, and
+     squeezed the collapsed titles until "Architecture & UX" clipped mid-word.
+     Now the open card is worth --pc-open collapsed ones and the four of them
+     always add up to the full container width, at every viewport. */
+  --pc-open: 2.35;
+  --pc-gap: 12px;
+  --pc-pad: 32px;
+  --pc-bd: 1px;
+  /* Mirrors .container (width: min(92vw, 1320px)). Keep the two in step — it
+     is what lets .pc-desc know how wide the open card will be. */
+  --pc-track: min(92vw, 1320px);
+  /* A border-box flex item cannot be laid out narrower than its own padding
+     and border, so flex-basis:0 really floors at --pc-floor and only what is
+     left over is shared out by flex-grow. Fold that floor in, or --pc-open
+     comes out ~46px too wide and the paragraph overruns the open card. */
+  --pc-floor: calc(2 * var(--pc-pad) + 2 * var(--pc-bd));
+  --pc-free: calc(var(--pc-track) - 3 * var(--pc-gap) - 4 * var(--pc-floor));
+  --pc-open-inner: calc(var(--pc-free) * var(--pc-open) / (3 + var(--pc-open)));
+  --card-height: 640px;
+  /* Slow in, slow out. The soft feel lives here; change the duration if you
+     must, but not this curve. */
+  --acc-ease: cubic-bezier(0.65, 0, 0.35, 1);
+
+  position: relative; overflow: hidden; isolation: isolate;
+  background: var(--bg);
+  padding: clamp(5rem, 8vw, 6.5rem) 0;
 }
 
-.p-step {
-  width: min(360px, 78vw);
-  min-height: 240px;
-  flex-shrink: 0;
+.process-atmos { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.pa-glow {
+  position: absolute; top: 54%; transform: translateY(-50%);
+  width: clamp(500px, 58vw, 1020px); aspect-ratio: 1; border-radius: 50%;
+}
+.pa-l { left: clamp(-440px, -26vw, -190px);
+  background: radial-gradient(circle, rgba(67,207,156,.16) 0%, rgba(67,207,156,.05) 30%, transparent 66%); }
+.pa-r { right: clamp(-440px, -26vw, -190px);
+  background: radial-gradient(circle, rgba(140,165,255,.11) 0%, rgba(100,130,200,.035) 32%, transparent 66%); }
+
+.process > .container { position: relative; z-index: 1; }
+
+/* ---- header ---- */
+/* Bottom-aligned, not top. Top-aligning put the paragraph level with the
+   little PROCESS eyebrow while the headline started 50px lower, so the right
+   column finished ~90px above the left and the pair looked unanchored.
+   Sharing a baseline reads as one row. */
+.pc-head {
+  display: flex; justify-content: space-between; gap: 64px;
+  /* Fallback: box-bottom alignment. It is close, but the two columns have very
+     different line-heights (1.1 at 56px vs 1.6 at 17px), so matching the boxes
+     still leaves the paragraph sitting a few pixels proud of the headline. */
+  align-items: flex-end;
+  /* What we actually want: the paragraph's last line and the headline's last
+     line share one baseline. That is the thing the eye reads as "aligned".
+     Browsers that do not know the keyword keep flex-end above. */
+  align-items: last baseline;
+}
+.pc-h2 {
+  margin-top: 0.9rem; max-width: 620px;
+  font-size: clamp(2rem, 4.2vw, 3.5rem); font-weight: 500;
+  line-height: 1.1; letter-spacing: -0.03em;
+}
+.pc-h2 em { font-family: var(--serif); font-style: italic; font-weight: 400; color: var(--accent); }
+.pc-lede {
+  max-width: 520px;
+  font-size: 1.06rem; line-height: 1.6; color: var(--text);
+}
+.pc-lede span { color: var(--text-3); }
+
+/* ---- the row ---- */
+.pc-grid { display: flex; gap: var(--pc-gap); align-items: stretch; margin-top: clamp(3rem, 5vw, 5rem); }
+
+.pc-card {
+  /* it is a real button, so undo the browser */
+  appearance: none; -webkit-appearance: none;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
+
+  /* flex-basis 0 + grow, so the four cards divide the whole track between them
+     and the row finishes flush with the container on both sides. Opening a
+     card animates its share of the track, not an absolute pixel width. */
+  flex: 1 1 0; min-width: 0;
+  height: var(--card-height);
+  padding: var(--pc-pad);
+  display: flex; flex-direction: column; justify-content: space-between; gap: 64px;
   position: relative; overflow: hidden;
-  display: flex; flex-direction: column; gap: 0.5rem;
-  padding: 30px;
-  border-radius: var(--r-card);
-  /* Gradient-lit border: hairline catches light top-left, emerald glint bottom-right */
-  border: 1px solid transparent;
+  border-radius: 22px;
+  border: var(--pc-bd) solid rgba(255, 255, 255, 0.085);
   background:
-    linear-gradient(#111316, #0f1114) padding-box,
-    linear-gradient(155deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 38%, rgba(67, 207, 156, 0.16)) border-box;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  transition: transform 0.5s var(--ease), box-shadow 0.5s var(--ease);
+    radial-gradient(130% 80% at 50% 0%, rgba(255, 255, 255, 0.055), transparent 58%),
+    linear-gradient(168deg, #131518 0%, #0d0f11 62%, #0a0b0d 100%);
+  box-shadow: 0 40px 90px -50px rgba(0, 0, 0, 1), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition:
+    flex-grow 0.9s var(--acc-ease),
+    border-color 0.9s var(--acc-ease),
+    box-shadow 0.9s var(--acc-ease);
   --mx: 50%; --my: 50%;
 }
-.p-step::before {
-  content: ''; position: absolute; inset: 0; border-radius: inherit;
-  background: radial-gradient(440px circle at var(--mx) var(--my), rgba(67, 207, 156, 0.07), transparent 55%);
-  opacity: 0; transition: opacity 0.4s; pointer-events: none;
+/* Noise, so the large flat panels do not band on cheap displays. */
+.pc-card::before {
+  content: ''; position: absolute; inset: 0; z-index: 1; border-radius: inherit; pointer-events: none;
+  opacity: 0.038;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-.p-step::after {
-  /* Giant ghost numeral, echoes the footer watermark */
-  content: attr(data-num);
-  position: absolute; right: -14px; bottom: -42px;
-  font-family: var(--mono); font-weight: 500;
-  font-size: clamp(7rem, 13vw, 13rem); line-height: 1;
-  color: transparent;
-  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.07);
-  pointer-events: none;
-  transition: -webkit-text-stroke-color 0.5s;
+/* Cursor light, same language as the bento tiles. */
+.pc-card::after {
+  content: ''; position: absolute; inset: 0; z-index: 2; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(420px circle at var(--mx) var(--my), rgba(67, 207, 156, 0.08), transparent 55%);
+  opacity: 0; transition: opacity 0.6s var(--acc-ease);
 }
-.p-step:hover {
-  transform: translateY(-6px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 36px 90px -36px rgba(0, 0, 0, 0.85);
-}
-.p-step:hover::before { opacity: 1; }
-.p-step:hover::after { -webkit-text-stroke-color: rgba(67, 207, 156, 0.28); }
+.pc-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
-.p-num { font-family: var(--mono); color: var(--accent); font-size: 0.85rem; }
-.p-num::after { content: ' / 07'; color: var(--text-3); font-size: 0.8em; letter-spacing: 0.04em; }
-
-.p-chips { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; margin-top: 20px; }
-.p-chips li {
-  font-size: 0.82rem; color: var(--text-2);
-  border: 1px solid var(--border); border-radius: 999px;
-  padding: 5px 13px;
-  background: rgba(255, 255, 255, 0.02);
-  transition: border-color 0.3s, color 0.3s;
+.pc-card.is-active {
+  flex-grow: var(--pc-open);
+  border-color: rgba(67, 207, 156, 0.26);
+  box-shadow:
+    0 55px 110px -50px rgba(0, 0, 0, 1),
+    0 0 40px -20px rgba(67, 207, 156, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
-.p-step:hover .p-chips li { border-color: var(--border-strong); color: var(--text); }
+.pc-card.is-active::after { opacity: 1; }
 
-.p-step h3 { font-size: 1.55rem; font-weight: 500; letter-spacing: -0.02em; margin-top: auto; }
-.p-step p { color: var(--text-2); font-size: 0.95rem; }
-
-.process-bar {
-  width: min(360px, 60vw); height: 2px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  margin: 0 auto 3.5rem;
-  overflow: hidden;
+.pc-top { position: relative; z-index: 3; display: block; }
+.pc-title { display: block; font-size: 24px; font-weight: 600; line-height: 1.24; color: var(--text); }
+.pc-desc {
+  display: block;
+  /* Fixed, not 100%. See the note at the top of this section. It is derived
+     from the track rather than hard-coded, so it is always exactly the open
+     card's inner width — the text never reflows while the card animates and
+     never runs past the padding once it is open. */
+  width: var(--pc-open-inner); margin-top: 8px;
+  font-size: 16px; line-height: 1.6; color: var(--text-2);
+  opacity: 0; transform: translateY(10px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
 }
-#process-bar-fill {
-  display: block; width: 100%; height: 100%;
-  background: var(--accent);
-  transform: scaleX(0); transform-origin: left;
+.pc-card.is-active .pc-desc { opacity: 1; transform: translateY(0); transition-delay: 0.12s; }
+
+/* The numeral is a sibling of the photo, not a child, so it never inherits
+   the fade — title and number stay at full opacity throughout. */
+.pc-bottom { position: relative; z-index: 3; display: block; width: 100%; }
+.pc-media {
+  display: block; width: 100%;
+  opacity: 0; transform: translateY(15px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.pc-card.is-active .pc-media { opacity: 1; transform: translateY(0); transition-delay: 0.15s; }
+.pc-media img {
+  display: block; width: 100%; height: auto; border-radius: 12px;
+  filter: grayscale(0.3) brightness(0.72) contrast(1.05);
+}
+.pc-num {
+  position: absolute; inset: auto 0 0 auto;
+  font-size: 96px; font-weight: 500; line-height: 1.24; letter-spacing: -0.8px;
+  color: #ffffff; white-space: nowrap; pointer-events: none;
 }
 
-/* Desktop: the pinned frame is one composed viewport (head + cards + bar) */
-@media (min-width: 901px) {
-  .process-pin {
-    min-height: 100dvh;
-    display: flex; flex-direction: column; justify-content: center;
-    padding-top: 84px;                    /* clearance for the fixed nav */
+/* ---- tablet and below: no accordion, every card open ---- */
+@media (max-width: 1279px) {
+  .pc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 48px; }
+  .pc-card, .pc-card.is-active {
+    width: auto; height: auto; gap: 32px;
+    flex: none;
+    transition: none;
   }
-  .process-pin .process-head { padding-top: 0; }
-  .process-track { padding-top: clamp(1.8rem, 3vw, 3rem); padding-bottom: 1.6rem; gap: 24px; }
-  .process-bar { margin: 1.6rem auto 2.4rem; }
-
-  .p-step {
-    width: min(460px, 36vw);
-    height: min(54vh, 500px);
-    min-height: 400px;
-    padding: 38px;
-  }
-  .p-num { font-size: 1.05rem; }
-  .p-step h3 { font-size: 2.2rem; }
-  .p-step p { font-size: 1.08rem; max-width: 30ch; }
+  .pc-desc { width: 100%; opacity: 1; transform: none; transition: none; }
+  .pc-media { opacity: 1; transform: none; transition: none; }
 }
 
-/* Short laptop screens: tighten the pinned frame so nothing clips */
-@media (min-width: 901px) and (max-height: 780px) {
-  .process-pin .process-head .h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); }
-  .p-step { height: min(50vh, 400px); min-height: 320px; padding: 30px; }
-  .p-step h3 { font-size: 1.8rem; }
-  .p-step::after { font-size: 8rem; }
-  .process-track { padding-top: 1.4rem; padding-bottom: 1rem; }
+@media (max-width: 991px) {
+  .process { padding: 48px 0; }
+  .process > .container { width: auto; margin-inline: 20px; }
+  .pc-head { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .pc-lede { margin-bottom: 0; }
+  .pc-h2 { font-size: 40px; }
+  .pc-lede { max-width: none; }
+}
+
+@media (max-width: 600px) {
+  .pc-grid { grid-template-columns: 1fr; }
+  .pc-num { font-size: 72px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-card, .pc-desc, .pc-media, .pc-card::after { transition-duration: 0.01ms !important; }
 }
 
 /* ============ 13 · REVIEW WALL (three counter-scrolling rows) ============ */
@@ -1001,24 +1090,7 @@ em { font-style: normal; }
   padding-top: 13px;
 }
 
-/* ============ 14 · TECH STACK ============ */
-
-.stack { padding: clamp(4rem, 7vw, 7rem) 0 clamp(5rem, 9vw, 9rem); }
-.stack-grid {
-  display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px;
-  margin-top: clamp(2.2rem, 4vw, 3.2rem);
-}
-.stack-grid li {
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
-  padding: 26px 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-card);
-  transition: transform 0.4s var(--ease), border-color 0.4s;
-}
-.stack-grid li:hover { transform: translateY(-4px); border-color: rgba(67, 207, 156, 0.4); }
-.stack-grid img { opacity: 0.85; }
-.stack-grid span { font-size: 0.82rem; color: var(--text-2); }
+/* 14 · Tech stack — rebuilt as the technology wall in section 47. */
 
 /* ============ 15 · FINAL CTA ============ */
 
@@ -1300,7 +1372,6 @@ em { font-style: normal; }
   .bento { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 215px; }
   .b-design { grid-column: span 2; }
   .b-migrate { grid-column: span 2; }
-  .stack-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
 @media (max-width: 900px) {
@@ -1317,10 +1388,11 @@ em { font-style: normal; }
 
   /* Process becomes a vertical stack */
   .process-track { flex-direction: column; width: 100%; padding: 2.2rem 4vw 1rem; }
+  .ps { width: 100%; }
   .p-step { width: 100%; min-height: 200px; }
   .p-step h3 { margin-top: 0.4rem; }
   .p-step::after { font-size: 6.5rem; right: -8px; bottom: -26px; }
-  .process-bar { display: none; }
+  .process-rail { display: none; }
 
   .m-page-vp { height: 320px; }
   @keyframes m-autoscroll { from { transform: translateY(0); } to { transform: translateY(calc(-100% + 320px)); } }
@@ -1364,7 +1436,6 @@ em { font-style: normal; }
   .store-row figcaption span { display: none; }
 
   .stats { gap: 1.4rem; }
-  .stack-grid { grid-template-columns: repeat(3, 1fr); }
   .bento { grid-template-columns: 1fr; grid-auto-rows: auto; }
   .bento-card { min-height: 210px; }
   .b-design, .b-migrate { grid-column: span 1; }
@@ -1794,6 +1865,18 @@ em { font-style: normal; }
 
 /* ============ 23 · BOOKING ============ */
 .book { position: relative; padding: clamp(4.5rem, 9vw, 8rem) 0; overflow: hidden; }
+
+/* The auroras are offset past the top and bottom of this section on purpose,
+   and overflow:hidden above then sliced them off — which drew a hard coloured
+   line straight across the page directly under the technology wall, and read
+   as that section's bottom edge. Fading the whole backdrop out before it
+   reaches either boundary keeps the depth and loses the line.
+   no-repeat matters: without it the gradient tiles past its own box. */
+.book .cta-bg {
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 78%, transparent 100%);
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+}
 .book-grid {
   position: relative; z-index: 1;
   display: grid; grid-template-columns: 1fr 1fr;
@@ -3312,4 +3395,210 @@ em { font-style: normal; }
   line-height: inherit;
   text-decoration: none;
   gap: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   46 · BENTO CARDS — one line, then the whole card is the link
+   ───────────────────────────────────────────────────────────────────────
+   Eight cards each carrying a three-line paragraph made the grid a wall of
+   text nobody finishes. Each card now states one thing; anyone who wants
+   the detail already has a service page waiting for them.
+
+   The title stays the only link in the accessibility tree and its ::after
+   stretches over the card, so the entire tile is the hit area without
+   nesting anything clickable inside anything else.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* One rendered line is the brief. A narrow tile fits ~37 characters even on a
+   360px phone, where the two wide tiles are narrow too, so every lede is
+   written to that budget and the measure never has to bind. */
+.b-lede { max-width: 42ch; }
+
+/* Those cards were top-aligned to keep their mini-graphic clear of the tag,
+   which left a one-line card floating with dead space beneath it. The graphic
+   still starts at the top — an auto margin below it takes the slack — but the
+   words now sit on the baseline every other tile uses. */
+.b-migrate, .b-cro, .b-seo, .b-speed, .b-ai, .b-email { justify-content: flex-end; }
+.bento-card .b-visual:not(.b-visual-img) { margin-bottom: auto; padding-bottom: 14px; }
+
+.bento-card .svc-link::after {
+  content: ''; position: absolute; inset: 0; z-index: 3;
+  border-radius: inherit;
+}
+.bento-card:hover h3 { color: var(--accent); }
+
+/* Focus belongs to the whole tile now, not just the words in it. */
+@supports selector(:has(*)) {
+  .bento-card:has(.svc-link:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .bento-card .svc-link:focus-visible { outline: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   47 · TECHNOLOGY WALL — three lanes, monochrome until you look at one
+   ───────────────────────────────────────────────────────────────────────
+   Three marquees at different speeds, the middle one running the other way,
+   so the wall never reads as a single sliding block. Logos sit on pale glass
+   and are desaturated by default; the one under the cursor returns to its
+   real brand colour and its lane — only its lane — stops.
+
+   The pause is animation-play-state, not a JS teardown, so a lane picks up
+   from exactly where it stopped. Everything animates transform, filter or
+   opacity; the loop is a plain -50% translate over duplicated content.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Deliberately no background, no overflow:hidden and no isolation on the
+   section. Every one of those turns a slice of the page into a panel sitting
+   on top of it: a background paints a rectangle you can find the edge of,
+   overflow:hidden cuts any glow that crosses the boundary into a hard
+   horizontal line, and isolation makes this the backdrop root, which is what
+   let the old blurred edge-fades haze a visible strip around the lanes. The
+   body's #000 shows straight through instead, so there is no boundary here to
+   see. If you add anything, add it to ::before below. */
+.tech {
+  position: relative;
+  padding: clamp(4rem, 6.5vw, 7rem) 0 clamp(4.5rem, 7vw, 7.5rem);
+}
+
+/* The only depth in the section: one very faint emerald bloom behind the
+   heading. It is sized so it reaches full transparency well inside the
+   section box on every axis — that is the whole trick. A glow that still has
+   colour where its box ends is a rectangle; a glow that has faded to nothing
+   before it gets there is atmosphere. */
+.tech::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(78% 54% at 50% 42%,
+    rgba(67, 207, 156, 0.055) 0%,
+    rgba(67, 207, 156, 0.018) 34%,
+    rgba(67, 207, 156, 0) 66%);
+}
+
+/* ---- header ---- */
+.tech-head { position: relative; z-index: 1; text-align: center; }
+.tech-badge {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 7px 16px;
+  border: 1px solid rgba(67, 207, 156, 0.3);
+  border-radius: 999px;
+  background: rgba(67, 207, 156, 0.055);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--accent);
+}
+.tech-badge-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 10px rgba(67, 207, 156, 0.9);
+}
+.tech-h2 { max-width: 18ch; margin: 1.4rem auto 0; font-size: clamp(1.9rem, 3.6vw, 2.9rem); }
+.tech-h2 em { color: var(--accent); }
+.tech-sub {
+  margin: 1.1rem auto 0; max-width: 56ch;
+  color: var(--text-2); font-size: clamp(0.95rem, 1.2vw, 1.05rem); line-height: 1.65;
+}
+
+/* ---- the lanes ---- */
+.tech-wall {
+  position: relative; z-index: 1;
+  margin-top: clamp(2.8rem, 4.5vw, 4rem);
+  /* Row padding below adds 32px of its own, so the lanes end up 40–48px apart
+     and read as three things floating in open space, not a stack. */
+  display: flex; flex-direction: column; gap: clamp(8px, 1vw, 16px);
+}
+
+/* Each lane fades itself out at both ends. Nothing is painted over the page to
+   do it — the mask removes the lane's own pixels, so the logos dissolve into
+   whatever is behind them, which is the same #000 as everywhere else. The old
+   approach put two blurred black panels on top; those had hard top and bottom
+   edges and their blur hazed the area between them, which is exactly the
+   strip that made this section look bolted on.
+   Vertical padding gives the hover lift and its glow somewhere to go inside
+   the overflow clip the marquee needs. The mask is horizontal only, so it
+   never touches those. */
+.tw-row {
+  overflow: hidden;
+  padding-block: 16px;
+  -webkit-mask-image: var(--tw-edge-fade);
+  mask-image: var(--tw-edge-fade);
+}
+.tech {
+  --tw-edge-fade: linear-gradient(90deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.07) 4%,
+    rgba(0, 0, 0, 0.40) 10%,
+    rgba(0, 0, 0, 0.85) 17%,
+    rgb(0, 0, 0) 24%,
+    rgb(0, 0, 0) 76%,
+    rgba(0, 0, 0, 0.85) 83%,
+    rgba(0, 0, 0, 0.40) 90%,
+    rgba(0, 0, 0, 0.07) 96%,
+    rgba(0, 0, 0, 0) 100%);
+}
+.tw-track {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; width: max-content; gap: clamp(10px, 1.1vw, 15px);
+  animation: tw-scroll var(--dur, 70s) linear infinite;
+}
+.tw-row--fwd .tw-track { animation-direction: reverse; }
+@keyframes tw-scroll { to { transform: translate3d(-50%, 0, 0); } }
+
+/* Only the lane being read stops. Its neighbours carry on. */
+.tw-row:hover .tw-track { animation-play-state: paused; }
+
+.tw-item { flex: 0 0 auto; }
+.tw-chip {
+  position: relative;
+  display: grid; place-items: center;
+  width: clamp(50px, 4.4vw, 64px); aspect-ratio: 1;
+  border-radius: clamp(14px, 1.25vw, 19px);
+  background:
+    linear-gradient(158deg, rgba(255, 255, 255, 0.085) 0%,
+      rgba(255, 255, 255, 0.03) 46%, rgba(255, 255, 255, 0.012) 100%),
+    rgba(255, 255, 255, 0.022);
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  box-shadow: 0 12px 26px -18px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  transition: transform 0.5s var(--ease), box-shadow 0.5s var(--ease),
+              background 0.5s var(--ease), border-color 0.5s var(--ease);
+}
+/* Glass highlight — a fixed sheen that strengthens under the cursor. */
+.tw-chip::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 44%);
+  opacity: 0.5; transition: opacity 0.5s var(--ease);
+}
+
+/* Two stacked copies of every mark: a white one that is on by default and
+   held back to a whisper, and the real brand-coloured one underneath it.
+   Cross-fading the pair beats filtering a single image — animating
+   grayscale/invert washes the icon through a muddy grey on the way. */
+.tw-chip img { grid-area: 1 / 1; width: 46%; height: auto; }
+.tw-mono { opacity: 0.55; transition: opacity 0.4s var(--ease); }
+.tw-color { opacity: 0; transition: opacity 0.4s var(--ease); }
+
+/* The tile lights up under the cursor, and it has to. Six of these brands —
+   Vercel, Next.js, GitHub, OpenAI, Notion, Framer — are literally black, so
+   revealing "the brand colour" on a dark tile would erase them. A pale plate
+   makes every one of the twenty-six legible at the moment it turns. */
+.tw-item:hover .tw-chip {
+  transform: translateY(-3px) scale(1.04);
+  border-color: rgba(255, 255, 255, 0.6);
+  background: linear-gradient(158deg, #ffffff, rgba(233, 237, 243, 0.94));
+  box-shadow:
+    0 22px 40px -18px rgba(0, 0, 0, 1),
+    0 0 30px -10px rgba(67, 207, 156, 0.45),
+    inset 0 1px 0 #ffffff;
+}
+.tw-item:hover .tw-chip::after { opacity: 0.7; }
+.tw-item:hover .tw-mono { opacity: 0; }
+.tw-item:hover .tw-color { opacity: 1; }
+
+@media (max-width: 900px) {
+  .tech-wall { gap: 9px; }
+  .tw-track { gap: 9px; }
+  .tw-chip { width: 48px; border-radius: 13px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tw-track { animation: none; }
+  .tw-chip { transition: none; }
+  /* With the lanes stopped they still have to be reachable. */
+  .tw-row { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
