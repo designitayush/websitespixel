@@ -1,6 +1,13 @@
 {
   "buildCommand": "node scripts/check-env.js",
   "outputDirectory": ".",
+  "redirects": [
+    {
+      "source": "/(.*\\.md)",
+      "destination": "/",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/assets/fonts/(.*)",
