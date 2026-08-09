@@ -1,0 +1,396 @@
+{% doc %}
+  Renders a slowly drifting wall of website previews as a hero background.
+
+  Large cards sit on one gently tilted plane that pans forever on a diagonal.
+  The plane is a 2x2 tiling translated by exactly one tile per cycle, so the
+  last frame is identical to the first and the loop point is invisible. Depth
+  comes from static per-card treatment rather than layers moving at different
+  speeds, so big overlapping cards can never slide through one another.
+
+  Decorative only: hidden from assistive technology and non-interactive.
+
+  @param {string} uid - Unique id for this instance (use section.id).
+  @param {number} [count] - Cards per tile, 10-24. Default 24.
+  @param {number} [speed] - Seconds per full loop. Default 55.
+  @param {number} [opacity] - Card opacity in percent, 20-100. Default 90.
+  @param {number} [blur] - Blur multiplier in percent. Default 100.
+  @param {number} [card_size] - Card scale in percent. Default 100.
+  @param {number} [rotation] - Per-card rotation in degrees, 0-10. Default 4.
+  @param {number} [tilt] - Tilt of the whole plane in degrees, -10 to 10. Default -7.
+  @param {number} [radius] - Card corner radius in px. Default 12.
+  @param {string} [direction] - "up_right" or "down_left". Default "up_right".
+  @param {boolean} [animate] - Master motion switch. Default true.
+  @param {boolean} [breathing] - Subtle per-card scale drift. Default true.
+  @param {boolean} [vignette] - Edge fade. Default true.
+  @param {string} [bg_color] - Colour the edges fade into. Default "#05050A".
+  @param {number} [overlay] - Scrim strength in percent, 0-100. Default 70.
+  @param {object} [images] - Array of image objects to use instead of the
+    bundled ones (cycled if fewer than the card count).
+
+  @example
+  {% render 'website-wall', uid: section.id, opacity: 90, speed: 55 %}
+{% enddoc %}
+
+{%- liquid
+  assign uid = uid | default: 'wall'
+  assign count = count | default: 24
+  assign speed = speed | default: 55
+  assign opacity = opacity | default: 90
+  assign blur = blur | default: 100
+  assign card_size = card_size | default: 100
+  assign rotation = rotation | default: 4
+  assign radius = radius | default: 12
+  assign direction = direction | default: 'up_right'
+  assign bg_color = bg_color | default: '#05050A'
+  assign overlay = overlay | default: 70
+
+  if tilt == nil
+    assign tilt = -7
+  endif
+  if animate == nil
+    assign animate = true
+  endif
+  if breathing == nil
+    assign breathing = true
+  endif
+  if vignette == nil
+    assign vignette = true
+  endif
+
+  comment
+    Cards past this point are dropped on phones, where far fewer fit.
+  endcomment
+  assign mobile_count = 14
+
+  comment
+    depth | x% | y% | width% | rotation | aspect-ratio | image id
+  endcomment
+  assign rows = "back|8.8|14.6|16.3|-3.5|1.548|01,mid|35.3|34.7|18.6|1.7|0.731|08,front|39.7|61.3|17.7|-3.2|1.548|04,front|68.5|89.4|18.4|0.1|1.069|11,front|74.0|11.5|20.7|1.7|1.548|05,front|0.5|38.5|18.4|-0.9|1.548|01,front|18.0|88.3|20.0|-2.4|0.731|08,front|26.4|13.8|20.2|-2.5|1.548|02,front|52.1|36.6|18.9|-2.3|0.731|09,back|60.9|63.1|16.0|-1.0|1.548|05,mid|83.7|83.8|18.0|1.9|1.548|01,back|91.8|16.1|15.4|1.1|2.053|06,mid|9.3|64.6|17.8|-0.5|1.548|02,front|31.9|84.0|20.0|1.9|0.731|09,mid|43.7|13.7|18.2|2.6|1.548|03,front|67.5|34.4|17.6|-1.9|0.731|10,front|75.7|61.6|19.5|-0.2|2.053|06,front|99.7|88.0|20.2|1.2|1.548|02,front|16.5|40.3|18.7|-0.8|1.616|07,front|25.9|60.7|19.4|-3.5|1.548|03,back|49.8|87.4|15.6|1.8|0.731|10,front|57.0|13.0|19.8|-1.5|1.548|04,back|81.1|36.5|15.8|-3.3|1.069|11,mid|90.3|63.7|18.4|-1.5|1.616|07" | split: ','
+
+  comment
+    Merchant screenshots replace the bundled set entirely when present.
+  endcomment
+  assign img_list = ''
+  if images != blank
+    for img in images
+      if img != blank
+        assign img_url = img | image_url: width: 1000
+        assign img_list = img_list | append: img_url | append: '~'
+      endif
+    endfor
+  endif
+  assign custom = img_list | split: '~'
+
+  assign op_value = opacity | divided_by: 100.0
+  assign blur_scale = blur | divided_by: 100.0
+  assign size_scale = card_size | divided_by: 100.0
+  assign rot_scale = rotation | divided_by: 4.0
+  assign scrim_a = overlay | divided_by: 100.0
+  assign scrim_edge = overlay | times: 0.8 | divided_by: 100.0
+  assign scrim_text = overlay | times: 0.55 | divided_by: 100.0
+-%}
+
+{% style %}
+  #wsp-wall-{{ uid }} .wsp-wall__scrim {
+    background:
+      radial-gradient(
+        ellipse 62% 48% at 50% 50%,
+        {{ bg_color | color_modify: 'alpha', scrim_text }} 0%,
+        {{ bg_color | color_modify: 'alpha', 0 }} 78%
+      ),
+      linear-gradient(
+        180deg,
+        {{ bg_color | color_modify: 'alpha', scrim_edge }} 0%,
+        {{ bg_color | color_modify: 'alpha', scrim_a }} 45%,
+        {{ bg_color | color_modify: 'alpha', scrim_edge }} 100%
+      );
+  }
+  #wsp-wall-{{ uid }} .wsp-wall__vignette {
+    background:
+      radial-gradient(
+        ellipse 86% 84% at 50% 50%,
+        {{ bg_color | color_modify: 'alpha', 0 }} 55%,
+        {{ bg_color | color_modify: 'alpha', 0.55 }} 85%,
+        {{ bg_color }} 100%
+      );
+  }
+  @media (max-width: 749px) {
+    #wsp-wall-{{ uid }} .wsp-wall__vignette {
+      background:
+        radial-gradient(
+          ellipse 125% 90% at 50% 50%,
+          {{ bg_color | color_modify: 'alpha', 0 }} 60%,
+          {{ bg_color | color_modify: 'alpha', 0.5 }} 88%,
+          {{ bg_color }} 100%
+        );
+    }
+  }
+{% endstyle %}
+
+<div
+  id="wsp-wall-{{ uid }}"
+  class="wsp-wall wsp-wall--{{ direction }}{% unless animate %} wsp-wall--still{% endunless %}{% unless breathing %} wsp-wall--nobreath{% endunless %}"
+  style="--wsp-op: {{ op_value }}; --wsp-dur: {{ speed }}s; --wsp-blur: {{ blur_scale }}; --wsp-size: {{ size_scale }}; --wsp-rot: {{ rot_scale }}; --wsp-tilt: {{ tilt }}deg; --wsp-radius: {{ radius }}px;"
+  data-wsp-wall
+  aria-hidden="true"
+  role="presentation"
+>
+  <div class="wsp-wall__stage">
+    {%- capture tile -%}
+      {%- for row in rows -%}
+        {%- if forloop.index0 >= count -%}{%- break -%}{%- endif -%}
+        {%- assign f = row | split: '|' -%}
+        {%- liquid
+          assign idx = forloop.index0
+          if custom.size > 0
+            assign pick = idx | modulo: custom.size
+            assign src = custom[pick]
+          else
+            capture file_name
+              echo 'wsp-wall-'
+              echo f[6]
+              echo '.jpg'
+            endcapture
+            assign src = file_name | asset_url
+          endif
+          assign delay = idx | times: 1.9 | modulo: 22
+        -%}
+        <div
+          class="wsp-wall__card wsp-wall__card--{{ f[0] }}{% if idx >= mobile_count %} wsp-wall__card--wide{% endif %}"
+          style="--x: {{ f[1] }}; --y: {{ f[2] }}; --w: {{ f[3] }}; --r: {{ f[4] }}; --ar: {{ f[5] }}; --bd: -{{ delay }}s;"
+        >
+          <img src="{{ src }}" alt="" loading="eager" fetchpriority="low" decoding="async" draggable="false">
+        </div>
+      {%- endfor -%}
+    {%- endcapture -%}
+    <div class="wsp-wall__plane">
+      <div class="wsp-wall__tile">{{ tile }}</div>
+      <div class="wsp-wall__tile">{{ tile }}</div>
+      <div class="wsp-wall__tile">{{ tile }}</div>
+      <div class="wsp-wall__tile">{{ tile }}</div>
+    </div>
+  </div>
+
+  <div class="wsp-wall__scrim"></div>
+  {%- if vignette -%}<div class="wsp-wall__vignette"></div>{%- endif -%}
+</div>
+
+{% stylesheet %}
+  .wsp-wall {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    contain: layout paint;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* The stage is deliberately larger than the hero so the tilt never exposes
+     a bare corner. Static transform; only the plane inside it animates. */
+  .wsp-wall__stage {
+    position: absolute;
+    inset: -24%;
+    transform: rotate(var(--wsp-tilt, -7deg));
+  }
+
+  /* A 2x2 tiling translated by exactly one tile per cycle: the final frame is
+     identical to the first, so the loop never shows a seam. */
+  .wsp-wall__plane {
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    animation: wsp-drift-ur var(--wsp-dur) linear infinite;
+  }
+
+  .wsp-wall--up_right .wsp-wall__plane { top: 0; left: -100%; }
+  .wsp-wall--down_left .wsp-wall__plane {
+    top: -100%;
+    left: 0;
+    animation-name: wsp-drift-dl;
+  }
+
+  .wsp-wall__tile {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .wsp-wall__card {
+    position: absolute;
+    left: calc(var(--x) * 1%);
+    top: calc(var(--y) * 1%);
+    width: calc(var(--w) * var(--wsp-size) * 1%);
+    transform: translate(-50%, -50%) rotate(calc(var(--r) * var(--wsp-rot) * 1deg));
+  }
+
+  .wsp-wall__card img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: var(--ar, 1.55);
+    object-fit: cover;
+    border-radius: var(--wsp-radius);
+    box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.75);
+    opacity: var(--wsp-op);
+    animation: wsp-breathe 26s ease-in-out var(--bd) infinite;
+  }
+
+  /* Depth is static: back cards read as further away without ever needing a
+     second plane moving at a different speed. Opacity and blur live on the
+     card, never on the plane, so the plane stays a plain transform container
+     instead of a render surface several times the size of the viewport. */
+  .wsp-wall__card--back img {
+    opacity: calc(var(--wsp-op) * 0.6);
+    filter: blur(calc(3px * var(--wsp-blur)));
+  }
+  .wsp-wall__card--mid img {
+    opacity: calc(var(--wsp-op) * 0.82);
+    filter: blur(calc(1.2px * var(--wsp-blur)));
+  }
+
+  .wsp-wall__scrim,
+  .wsp-wall__vignette {
+    position: absolute;
+    inset: 0;
+  }
+
+  .wsp-wall--paused .wsp-wall__plane,
+  .wsp-wall--paused .wsp-wall__card img {
+    animation-play-state: paused;
+  }
+
+  .wsp-wall--still .wsp-wall__plane,
+  .wsp-wall--still .wsp-wall__card img,
+  .wsp-wall--nobreath .wsp-wall__card img {
+    animation: none;
+  }
+
+  @keyframes wsp-drift-ur {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(50%, -50%, 0); }
+  }
+
+  @keyframes wsp-drift-dl {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-50%, 50%, 0); }
+  }
+
+  @keyframes wsp-breathe {
+    0%, 100% { transform: scale(0.995); }
+    50%      { transform: scale(1.005); }
+  }
+
+  /* Dropped to when the device cannot hold a smooth frame rate. */
+  .wsp-wall--lite .wsp-wall__card--wide { display: none; }
+  .wsp-wall--lite .wsp-wall__card img {
+    filter: none;
+    animation: none;
+    box-shadow: 0 16px 36px -14px rgba(0, 0, 0, 0.7);
+  }
+
+  @media (max-width: 749px) {
+    /* Phones fit far fewer cards, so they run bigger and sharper. */
+    .wsp-wall__card--wide { display: none; }
+
+    .wsp-wall__stage { inset: -32%; }
+
+    .wsp-wall__card {
+      width: calc(var(--w) * var(--wsp-size) * 1.45%);
+    }
+
+    .wsp-wall__card--back img { filter: blur(calc(1.5px * var(--wsp-blur))); }
+    .wsp-wall__card--mid img { filter: none; }
+
+    .wsp-wall__card img {
+      box-shadow: 0 16px 36px -14px rgba(0, 0, 0, 0.65);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wsp-wall__plane,
+    .wsp-wall__card img {
+      animation: none !important;
+    }
+  }
+{% endstylesheet %}
+
+{% javascript %}
+  (function () {
+    var REDUCED =
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function walls(root) {
+      return (root || document).querySelectorAll('[data-wsp-wall]');
+    }
+
+    // 1. Park the animation whenever the wall is off-screen, so it costs
+    //    nothing while the visitor reads the rest of the page.
+    var observer =
+      'IntersectionObserver' in window
+        ? new IntersectionObserver(
+            function (entries) {
+              for (var i = 0; i < entries.length; i++) {
+                entries[i].target.classList.toggle(
+                  'wsp-wall--paused',
+                  !entries[i].isIntersecting
+                );
+              }
+            },
+            { rootMargin: '150px' }
+          )
+        : null;
+
+    function observeAll(root) {
+      if (!observer) return;
+      var list = walls(root);
+      for (var i = 0; i < list.length; i++) observer.observe(list[i]);
+    }
+
+    // 2. Sample real frame times once, shortly after load. If this device
+    //    cannot hold a smooth frame rate, drop to the lighter treatment
+    //    rather than shipping a stuttering background.
+    function probeFrameBudget() {
+      if (REDUCED || !window.requestAnimationFrame) return;
+      var samples = [];
+      var last = 0;
+
+      function tick(now) {
+        if (last) samples.push(now - last);
+        last = now;
+        if (samples.length < 60) {
+          requestAnimationFrame(tick);
+          return;
+        }
+        samples.sort(function (a, b) { return a - b; });
+        if (samples[Math.floor(samples.length / 2)] > 20) {
+          var list = walls(document);
+          for (var i = 0; i < list.length; i++) {
+            list[i].classList.add('wsp-wall--lite');
+          }
+        }
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    observeAll(document);
+    if (document.readyState === 'complete') {
+      setTimeout(probeFrameBudget, 600);
+    } else {
+      window.addEventListener('load', function () {
+        setTimeout(probeFrameBudget, 600);
+      });
+    }
+
+    document.addEventListener('shopify:section:load', function (event) {
+      observeAll(event.target);
+    });
+  })();
+{% endjavascript %}

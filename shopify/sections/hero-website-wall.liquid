@@ -1,0 +1,363 @@
+{%- liquid
+  assign heading = section.settings.heading
+  assign eyebrow = section.settings.eyebrow
+  assign body = section.settings.body
+  assign screenshots = section.blocks | map: 'settings' | map: 'image'
+-%}
+
+<div
+  class="wsp-hero wsp-hero--{{ section.settings.alignment }}"
+  style="--wsp-hero-min: {{ section.settings.min_height }}px; --wsp-hero-bg: {{ section.settings.bg_color }}; --wsp-hero-fg: {{ section.settings.text_color }};"
+>
+  {% render 'website-wall',
+    uid: section.id,
+    count: section.settings.card_count,
+    speed: section.settings.speed,
+    opacity: section.settings.opacity,
+    blur: section.settings.blur,
+    card_size: section.settings.card_size,
+    rotation: section.settings.rotation,
+    tilt: section.settings.tilt,
+    radius: section.settings.radius,
+    direction: section.settings.direction,
+    animate: section.settings.enable_animation,
+    breathing: section.settings.enable_breathing,
+    vignette: section.settings.enable_vignette,
+    bg_color: section.settings.bg_color,
+    overlay: section.settings.overlay,
+    images: screenshots
+  %}
+
+  <div class="wsp-hero__inner">
+    {%- if eyebrow != blank -%}
+      <p class="wsp-hero__eyebrow">{{ eyebrow }}</p>
+    {%- endif -%}
+
+    {%- if heading != blank -%}
+      <h2 class="wsp-hero__heading">{{ heading }}</h2>
+    {%- endif -%}
+
+    {%- if body != blank -%}
+      <div class="wsp-hero__body">{{ body }}</div>
+    {%- endif -%}
+
+    {%- if section.settings.button_label != blank -%}
+      <div class="wsp-hero__actions">
+        <a
+          class="wsp-hero__btn wsp-hero__btn--primary"
+          {% if section.settings.button_link != blank %}
+            href="{{ section.settings.button_link }}"
+          {% else %}
+            href="#" aria-disabled="true"
+          {% endif %}
+        >
+          {{ section.settings.button_label }}
+        </a>
+
+        {%- if section.settings.button_label_2 != blank -%}
+          <a
+            class="wsp-hero__btn wsp-hero__btn--ghost"
+            {% if section.settings.button_link_2 != blank %}
+              href="{{ section.settings.button_link_2 }}"
+            {% else %}
+              href="#" aria-disabled="true"
+            {% endif %}
+          >
+            {{ section.settings.button_label_2 }}
+          </a>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+  </div>
+</div>
+
+{% stylesheet %}
+  .wsp-hero {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    min-height: var(--wsp-hero-min, 720px);
+    padding: 7rem 1.5rem 4rem;
+    background: var(--wsp-hero-bg, #05050a);
+    color: var(--wsp-hero-fg, #ffffff);
+    overflow: hidden;
+  }
+
+  .wsp-hero__inner {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1200px;
+    margin-inline: auto;
+  }
+
+  .wsp-hero--center .wsp-hero__inner { text-align: center; }
+  .wsp-hero--center .wsp-hero__body { margin-inline: auto; }
+  .wsp-hero--center .wsp-hero__actions { justify-content: center; }
+  .wsp-hero--right .wsp-hero__inner { text-align: right; }
+  .wsp-hero--right .wsp-hero__body { margin-left: auto; }
+  .wsp-hero--right .wsp-hero__actions { justify-content: flex-end; }
+
+  .wsp-hero__eyebrow {
+    margin: 0 0 1.25rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.65;
+  }
+
+  .wsp-hero__heading {
+    margin: 0;
+    font-size: clamp(2.25rem, 6vw, 4.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+
+  .wsp-hero__body {
+    max-width: 46ch;
+    margin: 1.5rem 0 0;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    opacity: 0.72;
+  }
+
+  .wsp-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 2.5rem;
+  }
+
+  .wsp-hero__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.9rem 1.75rem;
+    border-radius: 999px;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .wsp-hero__btn:active { transform: scale(0.98); }
+
+  .wsp-hero__btn--primary {
+    background: var(--wsp-hero-fg, #ffffff);
+    color: var(--wsp-hero-bg, #05050a);
+  }
+
+  .wsp-hero__btn--ghost {
+    border: 1px solid currentColor;
+    color: inherit;
+    opacity: 0.85;
+  }
+
+  .wsp-hero__btn--ghost:hover { opacity: 1; }
+
+  .wsp-hero__btn:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 749px) {
+    .wsp-hero { padding: 5.5rem 1.25rem 3rem; }
+    .wsp-hero__btn { width: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wsp-hero__btn { transition: none; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Hero: website wall",
+  "tag": "section",
+  "class": "wsp-hero-section",
+  "max_blocks": 40,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "A slowly drifting wall of website previews sits behind the hero. Add Screenshot blocks to show your own work; leave them empty to use the bundled set."
+    },
+    { "type": "header", "content": "Content" },
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Shopify design & development" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "We build Shopify stores that scale." },
+    { "type": "richtext", "id": "body", "label": "Body", "default": "<p>Conversion-obsessed design and serious engineering for ecommerce brands.</p>" },
+    { "type": "text", "id": "button_label", "label": "Primary button", "default": "Start a project" },
+    { "type": "url", "id": "button_link", "label": "Primary button link" },
+    { "type": "text", "id": "button_label_2", "label": "Secondary button" },
+    { "type": "url", "id": "button_link_2", "label": "Secondary button link" },
+    {
+      "type": "text_alignment",
+      "id": "alignment",
+      "label": "Alignment",
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "min_height",
+      "label": "Minimum height",
+      "min": 400,
+      "max": 900,
+      "step": 20,
+      "unit": "px",
+      "default": 720
+    },
+
+    { "type": "header", "content": "Animation" },
+    {
+      "type": "checkbox",
+      "id": "enable_animation",
+      "label": "Animate the background",
+      "info": "Always disabled for visitors who prefer reduced motion.",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "direction",
+      "label": "Drift direction",
+      "visible_if": "{{ section.settings.enable_animation }}",
+      "options": [
+        { "value": "up_right", "label": "Bottom left to top right" },
+        { "value": "down_left", "label": "Top right to bottom left" }
+      ],
+      "default": "up_right"
+    },
+    {
+      "type": "range",
+      "id": "speed",
+      "label": "Loop duration",
+      "info": "Slower is calmer. The loop is seamless at any value.",
+      "visible_if": "{{ section.settings.enable_animation }}",
+      "min": 25,
+      "max": 120,
+      "step": 5,
+      "unit": "s",
+      "default": 55
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_breathing",
+      "label": "Card breathing",
+      "info": "Barely visible scale drift on each card.",
+      "visible_if": "{{ section.settings.enable_animation }}",
+      "default": true
+    },
+
+    { "type": "header", "content": "Cards" },
+    {
+      "type": "range",
+      "id": "card_count",
+      "label": "Number of cards",
+      "info": "Per screen. Phones automatically show the first 14.",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "card_size",
+      "label": "Card size",
+      "min": 60,
+      "max": 180,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "rotation",
+      "label": "Rotation randomness",
+      "info": "How much each card tips away from square.",
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "unit": "deg",
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "tilt",
+      "label": "Wall tilt",
+      "info": "Rotates the whole wall. 0 sits square to the screen.",
+      "min": -10,
+      "max": 10,
+      "step": 1,
+      "unit": "deg",
+      "default": -7
+    },
+    {
+      "type": "range",
+      "id": "radius",
+      "label": "Corner radius",
+      "min": 0,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "default": 12
+    },
+
+    { "type": "header", "content": "Blend" },
+    {
+      "type": "range",
+      "id": "opacity",
+      "label": "Card opacity",
+      "info": "How present the work looks. Pair a high value with a stronger overlay so the text still wins.",
+      "min": 20,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 90
+    },
+    {
+      "type": "range",
+      "id": "blur",
+      "label": "Blur intensity",
+      "info": "Softens the cards set furthest back. 0 keeps every card sharp.",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "overlay",
+      "label": "Overlay darkness",
+      "info": "Raise this if your screenshots are light, or the headline will fight them.",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 70
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_vignette",
+      "label": "Vignette and edge fade",
+      "default": true
+    },
+    { "type": "color", "id": "bg_color", "label": "Background", "default": "#05050A" },
+    { "type": "color", "id": "text_color", "label": "Text", "default": "#FFFFFF" }
+  ],
+  "blocks": [
+    {
+      "type": "screenshot",
+      "name": "Screenshot",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Website screenshot",
+          "info": "Add one block per screenshot. Any number works: they are cycled across the wall."
+        }
+      ]
+    }
+  ],
+  "presets": [{ "name": "Hero: website wall" }]
+}
+{% endschema %}

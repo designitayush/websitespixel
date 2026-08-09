@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Website wall preview</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:#05050A;color:#fff;
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+  .wsp-hero{position:relative;isolation:isolate;display:flex;align-items:center;
+    min-height:100vh;padding:7rem 1.5rem 4rem;background:#05050A;overflow:hidden}
+  .wsp-hero__inner{position:relative;z-index:1;width:100%;max-width:1100px;
+    margin-inline:auto;text-align:center}
+  .wsp-hero__eyebrow{margin:0 0 1.25rem;font-size:.75rem;letter-spacing:.18em;
+    text-transform:uppercase;opacity:.8}
+  .wsp-hero__heading{margin:0;font-size:clamp(2.5rem,6.5vw,5rem);line-height:1.02;
+    letter-spacing:-.035em;font-weight:700;
+    text-shadow:0 2px 40px rgba(0,0,0,.5)}
+  .wsp-hero__body{max-width:46ch;margin:1.5rem auto 0;font-size:1.0625rem;
+    line-height:1.6;opacity:.85;text-shadow:0 1px 20px rgba(0,0,0,.6)}
+  .wsp-hero__actions{display:flex;gap:.75rem;justify-content:center;margin-top:2.5rem}
+  .wsp-hero__btn{display:inline-flex;align-items:center;padding:.9rem 1.75rem;
+    border-radius:999px;font-size:.9375rem;font-weight:500;text-decoration:none}
+  .wsp-hero__btn--primary{background:#fff;color:#05050A}
+  .wsp-hero__btn--ghost{border:1px solid currentColor;color:inherit;opacity:.9}
+  .wsp-wall__scrim{background:radial-gradient(ellipse 62% 48% at 50% 50%, rgba(5, 5, 10, 0.385) 0%, rgba(5, 5, 10, 0) 78%),linear-gradient(180deg, rgba(5, 5, 10, 0.560) 0%, rgba(5, 5, 10, 0.700) 45%, rgba(5, 5, 10, 0.560) 100%)}
+  .wsp-wall__vignette{background:radial-gradient(ellipse 86% 84% at 50% 50%, rgba(5, 5, 10, 0) 55%, rgba(5, 5, 10, 0.55) 85%, #05050A 100%)}
+  @media (max-width:749px){ .wsp-wall__vignette{background:radial-gradient(ellipse 125% 90% at 50% 50%, rgba(5, 5, 10, 0) 60%, rgba(5, 5, 10, 0.5) 88%, #05050A 100%)} }
+  .after{min-height:180vh;display:grid;place-items:center;opacity:.35;
+    border-top:1px solid rgba(255,255,255,.08)}
+
+/* ---- extracted verbatim from snippets/website-wall.liquid ---- */
+.wsp-wall {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    contain: layout paint;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* The stage is deliberately larger than the hero so the tilt never exposes
+     a bare corner. Static transform; only the plane inside it animates. */
+  .wsp-wall__stage {
+    position: absolute;
+    inset: -24%;
+    transform: rotate(var(--wsp-tilt, -7deg));
+  }
+
+  /* A 2x2 tiling translated by exactly one tile per cycle: the final frame is
+     identical to the first, so the loop never shows a seam. */
+  .wsp-wall__plane {
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    animation: wsp-drift-ur var(--wsp-dur) linear infinite;
+  }
+
+  .wsp-wall--up_right .wsp-wall__plane { top: 0; left: -100%; }
+  .wsp-wall--down_left .wsp-wall__plane {
+    top: -100%;
+    left: 0;
+    animation-name: wsp-drift-dl;
+  }
+
+  .wsp-wall__tile {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .wsp-wall__card {
+    position: absolute;
+    left: calc(var(--x) * 1%);
+    top: calc(var(--y) * 1%);
+    width: calc(var(--w) * var(--wsp-size) * 1%);
+    transform: translate(-50%, -50%) rotate(calc(var(--r) * var(--wsp-rot) * 1deg));
+  }
+
+  .wsp-wall__card img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: var(--ar, 1.55);
+    object-fit: cover;
+    border-radius: var(--wsp-radius);
+    box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.75);
+    opacity: var(--wsp-op);
+    animation: wsp-breathe 26s ease-in-out var(--bd) infinite;
+  }
+
+  /* Depth is static: back cards read as further away without ever needing a
+     second plane moving at a different speed. Opacity and blur live on the
+     card, never on the plane, so the plane stays a plain transform container
+     instead of a render surface several times the size of the viewport. */
+  .wsp-wall__card--back img {
+    opacity: calc(var(--wsp-op) * 0.6);
+    filter: blur(calc(3px * var(--wsp-blur)));
+  }
+  .wsp-wall__card--mid img {
+    opacity: calc(var(--wsp-op) * 0.82);
+    filter: blur(calc(1.2px * var(--wsp-blur)));
+  }
+
+  .wsp-wall__scrim,
+  .wsp-wall__vignette {
+    position: absolute;
+    inset: 0;
+  }
+
+  .wsp-wall--paused .wsp-wall__plane,
+  .wsp-wall--paused .wsp-wall__card img {
+    animation-play-state: paused;
+  }
+
+  .wsp-wall--still .wsp-wall__plane,
+  .wsp-wall--still .wsp-wall__card img,
+  .wsp-wall--nobreath .wsp-wall__card img {
+    animation: none;
+  }
+
+  @keyframes wsp-drift-ur {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(50%, -50%, 0); }
+  }
+
+  @keyframes wsp-drift-dl {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-50%, 50%, 0); }
+  }
+
+  @keyframes wsp-breathe {
+    0%, 100% { transform: scale(0.995); }
+    50%      { transform: scale(1.005); }
+  }
+
+  /* Dropped to when the device cannot hold a smooth frame rate. */
+  .wsp-wall--lite .wsp-wall__card--wide { display: none; }
+  .wsp-wall--lite .wsp-wall__card img {
+    filter: none;
+    animation: none;
+    box-shadow: 0 16px 36px -14px rgba(0, 0, 0, 0.7);
+  }
+
+  @media (max-width: 749px) {
+    /* Phones fit far fewer cards, so they run bigger and sharper. */
+    .wsp-wall__card--wide { display: none; }
+
+    .wsp-wall__stage { inset: -32%; }
+
+    .wsp-wall__card {
+      width: calc(var(--w) * var(--wsp-size) * 1.45%);
+    }
+
+    .wsp-wall__card--back img { filter: blur(calc(1.5px * var(--wsp-blur))); }
+    .wsp-wall__card--mid img { filter: none; }
+
+    .wsp-wall__card img {
+      box-shadow: 0 16px 36px -14px rgba(0, 0, 0, 0.65);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wsp-wall__plane,
+    .wsp-wall__card img {
+      animation: none !important;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="wsp-hero">
+    <div id="wsp-wall-preview" class="wsp-wall wsp-wall--up_right"
+      style="--wsp-op:0.9;--wsp-dur:55s;--wsp-blur:1;--wsp-size:1;--wsp-rot:1;--wsp-tilt:-7deg;--wsp-radius:12px"
+      data-wsp-wall aria-hidden="true" role="presentation">
+      <div class="wsp-wall__stage">
+        <div class="wsp-wall__plane">
+          <div class="wsp-wall__tile"><div class="wsp-wall__card wsp-wall__card--back" style="--x:8.8;--y:14.6;--w:16.3;--r:-3.5;--ar:1.548;--bd:-0s"><img src="../assets/wsp-wall-01.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid" style="--x:35.3;--y:34.7;--w:18.6;--r:1.7;--ar:0.731;--bd:-1.9s"><img src="../assets/wsp-wall-08.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:39.7;--y:61.3;--w:17.7;--r:-3.2;--ar:1.548;--bd:-3.8s"><img src="../assets/wsp-wall-04.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:68.5;--y:89.4;--w:18.4;--r:0.1;--ar:1.069;--bd:-5.699999999999999s"><img src="../assets/wsp-wall-11.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:74.0;--y:11.5;--w:20.7;--r:1.7;--ar:1.548;--bd:-7.6s"><img src="../assets/wsp-wall-05.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:0.5;--y:38.5;--w:18.4;--r:-0.9;--ar:1.548;--bd:-9.5s"><img src="../assets/wsp-wall-01.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:18.0;--y:88.3;--w:20.0;--r:-2.4;--ar:0.731;--bd:-11.399999999999999s"><img src="../assets/wsp-wall-08.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:26.4;--y:13.8;--w:20.2;--r:-2.5;--ar:1.548;--bd:-13.299999999999999s"><img src="../assets/wsp-wall-02.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:52.1;--y:36.6;--w:18.9;--r:-2.3;--ar:0.731;--bd:-15.2s"><img src="../assets/wsp-wall-09.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back" style="--x:60.9;--y:63.1;--w:16.0;--r:-1.0;--ar:1.548;--bd:-17.099999999999998s"><img src="../assets/wsp-wall-05.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid" style="--x:83.7;--y:83.8;--w:18.0;--r:1.9;--ar:1.548;--bd:-19s"><img src="../assets/wsp-wall-01.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back" style="--x:91.8;--y:16.1;--w:15.4;--r:1.1;--ar:2.053;--bd:-20.9s"><img src="../assets/wsp-wall-06.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid" style="--x:9.3;--y:64.6;--w:17.8;--r:-0.5;--ar:1.548;--bd:-0.7999999999999972s"><img src="../assets/wsp-wall-02.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:31.9;--y:84.0;--w:20.0;--r:1.9;--ar:0.731;--bd:-2.6999999999999993s"><img src="../assets/wsp-wall-09.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid wsp-wall__card--wide" style="--x:43.7;--y:13.7;--w:18.2;--r:2.6;--ar:1.548;--bd:-4.599999999999998s"><img src="../assets/wsp-wall-03.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:67.5;--y:34.4;--w:17.6;--r:-1.9;--ar:0.731;--bd:-6.5s"><img src="../assets/wsp-wall-10.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:75.7;--y:61.6;--w:19.5;--r:-0.2;--ar:2.053;--bd:-8.399999999999999s"><img src="../assets/wsp-wall-06.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:99.7;--y:88.0;--w:20.2;--r:1.2;--ar:1.548;--bd:-10.299999999999997s"><img src="../assets/wsp-wall-02.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:16.5;--y:40.3;--w:18.7;--r:-0.8;--ar:1.616;--bd:-12.199999999999996s"><img src="../assets/wsp-wall-07.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:25.9;--y:60.7;--w:19.4;--r:-3.5;--ar:1.548;--bd:-14.100000000000001s"><img src="../assets/wsp-wall-03.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back wsp-wall__card--wide" style="--x:49.8;--y:87.4;--w:15.6;--r:1.8;--ar:0.731;--bd:-16s"><img src="../assets/wsp-wall-10.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:57.0;--y:13.0;--w:19.8;--r:-1.5;--ar:1.548;--bd:-17.9s"><img src="../assets/wsp-wall-04.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back wsp-wall__card--wide" style="--x:81.1;--y:36.5;--w:15.8;--r:-3.3;--ar:1.069;--bd:-19.799999999999997s"><img src="../assets/wsp-wall-11.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid wsp-wall__card--wide" style="--x:90.3;--y:63.7;--w:18.4;--r:-1.5;--ar:1.616;--bd:-21.699999999999996s"><img src="../assets/wsp-wall-07.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div></div><div class="wsp-wall__tile"><div class="wsp-wall__card wsp-wall__card--back" style="--x:8.8;--y:14.6;--w:16.3;--r:-3.5;--ar:1.548;--bd:-0s"><img src="../assets/wsp-wall-01.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid" style="--x:35.3;--y:34.7;--w:18.6;--r:1.7;--ar:0.731;--bd:-1.9s"><img src="../assets/wsp-wall-08.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:39.7;--y:61.3;--w:17.7;--r:-3.2;--ar:1.548;--bd:-3.8s"><img src="../assets/wsp-wall-04.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:68.5;--y:89.4;--w:18.4;--r:0.1;--ar:1.069;--bd:-5.699999999999999s"><img src="../assets/wsp-wall-11.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:74.0;--y:11.5;--w:20.7;--r:1.7;--ar:1.548;--bd:-7.6s"><img src="../assets/wsp-wall-05.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:0.5;--y:38.5;--w:18.4;--r:-0.9;--ar:1.548;--bd:-9.5s"><img src="../assets/wsp-wall-01.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:18.0;--y:88.3;--w:20.0;--r:-2.4;--ar:0.731;--bd:-11.399999999999999s"><img src="../assets/wsp-wall-08.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:26.4;--y:13.8;--w:20.2;--r:-2.5;--ar:1.548;--bd:-13.299999999999999s"><img src="../assets/wsp-wall-02.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:52.1;--y:36.6;--w:18.9;--r:-2.3;--ar:0.731;--bd:-15.2s"><img src="../assets/wsp-wall-09.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back" style="--x:60.9;--y:63.1;--w:16.0;--r:-1.0;--ar:1.548;--bd:-17.099999999999998s"><img src="../assets/wsp-wall-05.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid" style="--x:83.7;--y:83.8;--w:18.0;--r:1.9;--ar:1.548;--bd:-19s"><img src="../assets/wsp-wall-01.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back" style="--x:91.8;--y:16.1;--w:15.4;--r:1.1;--ar:2.053;--bd:-20.9s"><img src="../assets/wsp-wall-06.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid" style="--x:9.3;--y:64.6;--w:17.8;--r:-0.5;--ar:1.548;--bd:-0.7999999999999972s"><img src="../assets/wsp-wall-02.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:31.9;--y:84.0;--w:20.0;--r:1.9;--ar:0.731;--bd:-2.6999999999999993s"><img src="../assets/wsp-wall-09.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid wsp-wall__card--wide" style="--x:43.7;--y:13.7;--w:18.2;--r:2.6;--ar:1.548;--bd:-4.599999999999998s"><img src="../assets/wsp-wall-03.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:67.5;--y:34.4;--w:17.6;--r:-1.9;--ar:0.731;--bd:-6.5s"><img src="../assets/wsp-wall-10.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:75.7;--y:61.6;--w:19.5;--r:-0.2;--ar:2.053;--bd:-8.399999999999999s"><img src="../assets/wsp-wall-06.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:99.7;--y:88.0;--w:20.2;--r:1.2;--ar:1.548;--bd:-10.299999999999997s"><img src="../assets/wsp-wall-02.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:16.5;--y:40.3;--w:18.7;--r:-0.8;--ar:1.616;--bd:-12.199999999999996s"><img src="../assets/wsp-wall-07.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:25.9;--y:60.7;--w:19.4;--r:-3.5;--ar:1.548;--bd:-14.100000000000001s"><img src="../assets/wsp-wall-03.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back wsp-wall__card--wide" style="--x:49.8;--y:87.4;--w:15.6;--r:1.8;--ar:0.731;--bd:-16s"><img src="../assets/wsp-wall-10.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:57.0;--y:13.0;--w:19.8;--r:-1.5;--ar:1.548;--bd:-17.9s"><img src="../assets/wsp-wall-04.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back wsp-wall__card--wide" style="--x:81.1;--y:36.5;--w:15.8;--r:-3.3;--ar:1.069;--bd:-19.799999999999997s"><img src="../assets/wsp-wall-11.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid wsp-wall__card--wide" style="--x:90.3;--y:63.7;--w:18.4;--r:-1.5;--ar:1.616;--bd:-21.699999999999996s"><img src="../assets/wsp-wall-07.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div></div><div class="wsp-wall__tile"><div class="wsp-wall__card wsp-wall__card--back" style="--x:8.8;--y:14.6;--w:16.3;--r:-3.5;--ar:1.548;--bd:-0s"><img src="../assets/wsp-wall-01.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid" style="--x:35.3;--y:34.7;--w:18.6;--r:1.7;--ar:0.731;--bd:-1.9s"><img src="../assets/wsp-wall-08.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:39.7;--y:61.3;--w:17.7;--r:-3.2;--ar:1.548;--bd:-3.8s"><img src="../assets/wsp-wall-04.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:68.5;--y:89.4;--w:18.4;--r:0.1;--ar:1.069;--bd:-5.699999999999999s"><img src="../assets/wsp-wall-11.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:74.0;--y:11.5;--w:20.7;--r:1.7;--ar:1.548;--bd:-7.6s"><img src="../assets/wsp-wall-05.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:0.5;--y:38.5;--w:18.4;--r:-0.9;--ar:1.548;--bd:-9.5s"><img src="../assets/wsp-wall-01.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:18.0;--y:88.3;--w:20.0;--r:-2.4;--ar:0.731;--bd:-11.399999999999999s"><img src="../assets/wsp-wall-08.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:26.4;--y:13.8;--w:20.2;--r:-2.5;--ar:1.548;--bd:-13.299999999999999s"><img src="../assets/wsp-wall-02.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:52.1;--y:36.6;--w:18.9;--r:-2.3;--ar:0.731;--bd:-15.2s"><img src="../assets/wsp-wall-09.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back" style="--x:60.9;--y:63.1;--w:16.0;--r:-1.0;--ar:1.548;--bd:-17.099999999999998s"><img src="../assets/wsp-wall-05.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid" style="--x:83.7;--y:83.8;--w:18.0;--r:1.9;--ar:1.548;--bd:-19s"><img src="../assets/wsp-wall-01.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back" style="--x:91.8;--y:16.1;--w:15.4;--r:1.1;--ar:2.053;--bd:-20.9s"><img src="../assets/wsp-wall-06.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid" style="--x:9.3;--y:64.6;--w:17.8;--r:-0.5;--ar:1.548;--bd:-0.7999999999999972s"><img src="../assets/wsp-wall-02.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:31.9;--y:84.0;--w:20.0;--r:1.9;--ar:0.731;--bd:-2.6999999999999993s"><img src="../assets/wsp-wall-09.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid wsp-wall__card--wide" style="--x:43.7;--y:13.7;--w:18.2;--r:2.6;--ar:1.548;--bd:-4.599999999999998s"><img src="../assets/wsp-wall-03.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:67.5;--y:34.4;--w:17.6;--r:-1.9;--ar:0.731;--bd:-6.5s"><img src="../assets/wsp-wall-10.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:75.7;--y:61.6;--w:19.5;--r:-0.2;--ar:2.053;--bd:-8.399999999999999s"><img src="../assets/wsp-wall-06.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:99.7;--y:88.0;--w:20.2;--r:1.2;--ar:1.548;--bd:-10.299999999999997s"><img src="../assets/wsp-wall-02.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:16.5;--y:40.3;--w:18.7;--r:-0.8;--ar:1.616;--bd:-12.199999999999996s"><img src="../assets/wsp-wall-07.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:25.9;--y:60.7;--w:19.4;--r:-3.5;--ar:1.548;--bd:-14.100000000000001s"><img src="../assets/wsp-wall-03.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back wsp-wall__card--wide" style="--x:49.8;--y:87.4;--w:15.6;--r:1.8;--ar:0.731;--bd:-16s"><img src="../assets/wsp-wall-10.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:57.0;--y:13.0;--w:19.8;--r:-1.5;--ar:1.548;--bd:-17.9s"><img src="../assets/wsp-wall-04.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back wsp-wall__card--wide" style="--x:81.1;--y:36.5;--w:15.8;--r:-3.3;--ar:1.069;--bd:-19.799999999999997s"><img src="../assets/wsp-wall-11.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid wsp-wall__card--wide" style="--x:90.3;--y:63.7;--w:18.4;--r:-1.5;--ar:1.616;--bd:-21.699999999999996s"><img src="../assets/wsp-wall-07.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div></div><div class="wsp-wall__tile"><div class="wsp-wall__card wsp-wall__card--back" style="--x:8.8;--y:14.6;--w:16.3;--r:-3.5;--ar:1.548;--bd:-0s"><img src="../assets/wsp-wall-01.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid" style="--x:35.3;--y:34.7;--w:18.6;--r:1.7;--ar:0.731;--bd:-1.9s"><img src="../assets/wsp-wall-08.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:39.7;--y:61.3;--w:17.7;--r:-3.2;--ar:1.548;--bd:-3.8s"><img src="../assets/wsp-wall-04.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:68.5;--y:89.4;--w:18.4;--r:0.1;--ar:1.069;--bd:-5.699999999999999s"><img src="../assets/wsp-wall-11.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:74.0;--y:11.5;--w:20.7;--r:1.7;--ar:1.548;--bd:-7.6s"><img src="../assets/wsp-wall-05.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:0.5;--y:38.5;--w:18.4;--r:-0.9;--ar:1.548;--bd:-9.5s"><img src="../assets/wsp-wall-01.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:18.0;--y:88.3;--w:20.0;--r:-2.4;--ar:0.731;--bd:-11.399999999999999s"><img src="../assets/wsp-wall-08.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:26.4;--y:13.8;--w:20.2;--r:-2.5;--ar:1.548;--bd:-13.299999999999999s"><img src="../assets/wsp-wall-02.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:52.1;--y:36.6;--w:18.9;--r:-2.3;--ar:0.731;--bd:-15.2s"><img src="../assets/wsp-wall-09.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back" style="--x:60.9;--y:63.1;--w:16.0;--r:-1.0;--ar:1.548;--bd:-17.099999999999998s"><img src="../assets/wsp-wall-05.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid" style="--x:83.7;--y:83.8;--w:18.0;--r:1.9;--ar:1.548;--bd:-19s"><img src="../assets/wsp-wall-01.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back" style="--x:91.8;--y:16.1;--w:15.4;--r:1.1;--ar:2.053;--bd:-20.9s"><img src="../assets/wsp-wall-06.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid" style="--x:9.3;--y:64.6;--w:17.8;--r:-0.5;--ar:1.548;--bd:-0.7999999999999972s"><img src="../assets/wsp-wall-02.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front" style="--x:31.9;--y:84.0;--w:20.0;--r:1.9;--ar:0.731;--bd:-2.6999999999999993s"><img src="../assets/wsp-wall-09.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid wsp-wall__card--wide" style="--x:43.7;--y:13.7;--w:18.2;--r:2.6;--ar:1.548;--bd:-4.599999999999998s"><img src="../assets/wsp-wall-03.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:67.5;--y:34.4;--w:17.6;--r:-1.9;--ar:0.731;--bd:-6.5s"><img src="../assets/wsp-wall-10.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:75.7;--y:61.6;--w:19.5;--r:-0.2;--ar:2.053;--bd:-8.399999999999999s"><img src="../assets/wsp-wall-06.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:99.7;--y:88.0;--w:20.2;--r:1.2;--ar:1.548;--bd:-10.299999999999997s"><img src="../assets/wsp-wall-02.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:16.5;--y:40.3;--w:18.7;--r:-0.8;--ar:1.616;--bd:-12.199999999999996s"><img src="../assets/wsp-wall-07.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:25.9;--y:60.7;--w:19.4;--r:-3.5;--ar:1.548;--bd:-14.100000000000001s"><img src="../assets/wsp-wall-03.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back wsp-wall__card--wide" style="--x:49.8;--y:87.4;--w:15.6;--r:1.8;--ar:0.731;--bd:-16s"><img src="../assets/wsp-wall-10.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--front wsp-wall__card--wide" style="--x:57.0;--y:13.0;--w:19.8;--r:-1.5;--ar:1.548;--bd:-17.9s"><img src="../assets/wsp-wall-04.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--back wsp-wall__card--wide" style="--x:81.1;--y:36.5;--w:15.8;--r:-3.3;--ar:1.069;--bd:-19.799999999999997s"><img src="../assets/wsp-wall-11.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div><div class="wsp-wall__card wsp-wall__card--mid wsp-wall__card--wide" style="--x:90.3;--y:63.7;--w:18.4;--r:-1.5;--ar:1.616;--bd:-21.699999999999996s"><img src="../assets/wsp-wall-07.jpg" alt="" decoding="async" fetchpriority="low" draggable="false"></div></div>
+        </div>
+      </div>
+      <div class="wsp-wall__scrim"></div>
+      <div class="wsp-wall__vignette"></div>
+    </div>
+
+    <div class="wsp-hero__inner">
+      <p class="wsp-hero__eyebrow">A Shopify Design &amp; Development Studio</p>
+      <h1 class="wsp-hero__heading">We build Shopify stores that scale.</h1>
+      <p class="wsp-hero__body">Conversion-obsessed design and serious engineering for
+        ecommerce brands that treat their store like their best salesperson.</p>
+      <div class="wsp-hero__actions">
+        <a class="wsp-hero__btn wsp-hero__btn--primary" href="#">Start a project</a>
+        <a class="wsp-hero__btn wsp-hero__btn--ghost" href="#">See our work</a>
+      </div>
+    </div>
+  </div>
+  <div class="after">Content below the hero</div>
+
+<script>
+/* ---- extracted verbatim from snippets/website-wall.liquid ---- */
+(function () {
+    var REDUCED =
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function walls(root) {
+      return (root || document).querySelectorAll('[data-wsp-wall]');
+    }
+
+    // 1. Park the animation whenever the wall is off-screen, so it costs
+    //    nothing while the visitor reads the rest of the page.
+    var observer =
+      'IntersectionObserver' in window
+        ? new IntersectionObserver(
+            function (entries) {
+              for (var i = 0; i < entries.length; i++) {
+                entries[i].target.classList.toggle(
+                  'wsp-wall--paused',
+                  !entries[i].isIntersecting
+                );
+              }
+            },
+            { rootMargin: '150px' }
+          )
+        : null;
+
+    function observeAll(root) {
+      if (!observer) return;
+      var list = walls(root);
+      for (var i = 0; i < list.length; i++) observer.observe(list[i]);
+    }
+
+    // 2. Sample real frame times once, shortly after load. If this device
+    //    cannot hold a smooth frame rate, drop to the lighter treatment
+    //    rather than shipping a stuttering background.
+    function probeFrameBudget() {
+      if (REDUCED || !window.requestAnimationFrame) return;
+      var samples = [];
+      var last = 0;
+
+      function tick(now) {
+        if (last) samples.push(now - last);
+        last = now;
+        if (samples.length < 60) {
+          requestAnimationFrame(tick);
+          return;
+        }
+        samples.sort(function (a, b) { return a - b; });
+        if (samples[Math.floor(samples.length / 2)] > 20) {
+          var list = walls(document);
+          for (var i = 0; i < list.length; i++) {
+            list[i].classList.add('wsp-wall--lite');
+          }
+        }
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    observeAll(document);
+    if (document.readyState === 'complete') {
+      setTimeout(probeFrameBudget, 600);
+    } else {
+      window.addEventListener('load', function () {
+        setTimeout(probeFrameBudget, 600);
+      });
+    }
+
+    document.addEventListener('shopify:section:load', function (event) {
+      observeAll(event.target);
+    });
+  })();
+</script>
+</body>
+</html>
