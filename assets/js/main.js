@@ -1092,7 +1092,14 @@ window.addEventListener('load', function () {
     window.setTimeout(function () { requestAnimationFrame(frame); }, delay);
   }
 
-  function start() { els.forEach(function (el, i) { count(el, i * STAGGER); }); }
+  /* Zero every counter up front. The HTML ships the real figure so crawlers
+     read it, which means the staggered ones would otherwise display it for up
+     to 330ms before snapping back to 0. Skipped under reduced motion, where
+     count() deliberately leaves the real number in place. */
+  function start() {
+    if (!reduced) els.forEach(function (el) { el.textContent = '0'; });
+    els.forEach(function (el, i) { count(el, i * STAGGER); });
+  }
 
   if (!('IntersectionObserver' in window)) { start(); return; }
   var io = new IntersectionObserver(function (entries) {
