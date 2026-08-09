@@ -34,6 +34,19 @@
   font-display: swap;
   src: url('../fonts/source-serif-4-latin.woff2') format('woff2');
 }
+/* The real italic. Subset to the characters headlines actually use, which is
+   why it is 12KB against the roman's 50KB.
+
+   Before this file existed, every `font-style: italic` on the serif was drawn
+   by the browser as a flat 14deg shear of the roman — a steeper lean than the
+   genuine face, which is cut at 12deg, and with none of its letterforms. */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: italic;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url('../fonts/source-serif-4-italic-latin.woff2') format('woff2');
+}
 @font-face {
   font-family: 'Geist';
   font-style: normal;
@@ -109,6 +122,10 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  /* Weight may be synthesised (Geist covers 300-700, so it never needs to be).
+     Style may not: if the italic ever fails to arrive we fall back to the
+     roman, never to a sheared imitation of it. */
+  font-synthesis: weight small-caps;
 }
 
 img { max-width: 100%; display: block; }
@@ -146,12 +163,74 @@ em { font-style: normal; }
 
 /* ============ 04 · TYPOGRAPHY PRIMITIVES ============ */
 
+/* ------------------------------------------------------------
+   THE TURN
+
+   Every headline gets at most one emphasised phrase: the word
+   where the sentence stops describing what we do and starts
+   naming what it is worth. It is set in the serif italic, and it
+   is the only emphasis device on the site. Most headings — the
+   section labels, "What is included.", "The team." — get none.
+   The ratio is the point. If every heading is emphasised, none is.
+
+   What this replaces: emphasis by hue alone. Same face, same
+   weight, same size, just green. That fails WCAG 1.4.1, because
+   colour was the sole carrier of the meaning, and it spent the
+   interaction colour on text nobody can click. Green survives in
+   exactly one place now — the hero — where nothing competes.
+
+   Three numbers here are doing real work:
+     1.06em    Source Serif's x-height sits below Geist's, so at a
+               matched nominal size it reads visibly smaller.
+     -0.008em  the sans runs near -0.03em; an italic serif at that
+               fit starts colliding with its own neighbours.
+     0.05em    an italic's final letter leans into what follows it.
+   ------------------------------------------------------------ */
+h1 em, h2 em, .turn {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.06em;
+  letter-spacing: -0.008em;
+  padding-right: 0.05em;
+}
+
+/* A retraction inside a headline — the qualifying half of a two-part claim.
+   The only place on the site where size varies within a single heading, and
+   it earns it: a sentence that walks back the one before it should be quieter
+   than the claim, not the same size arguing with it. Used once, on the AI
+   page: "We use AI to do the slow parts faster. / Not to do your thinking
+   for you." */
+.h-retract {
+  display: block;
+  margin-top: 0.4em;
+  font-size: 0.62em;
+  font-weight: 400;
+  letter-spacing: -0.012em;
+  line-height: 1.3;
+  color: var(--text-2);
+}
+
+/* ------------------------------------------------------------
+   OPTICAL SCALE
+
+   Type does not scale linearly. The larger it gets the heavier
+   and looser it looks, so it wants less weight and a tighter fit;
+   the smaller it gets, the reverse. Faces carrying an `opsz` axis
+   do this themselves. Geist has none, so it is done by hand here.
+
+   Previously every heading from 1.9rem to 4.7rem — a 2.5x range —
+   was weight 500 at roughly -0.03em. That is why the hero read
+   slightly stodgy and the small headings slightly loose, without
+   either being obviously wrong.
+   ------------------------------------------------------------ */
 .h2 {
   font-size: clamp(2rem, 4.6vw, 3.5rem);
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.028em;
   line-height: 1.06;
   max-width: 21ch;
+  text-wrap: balance;
 }
 
 .section-sub {
@@ -323,11 +402,17 @@ em { font-style: normal; }
   color: #c9ced6; margin-bottom: 1.7rem;
 }
 
+/* Display. The largest type on the site, so the lightest weight and the
+   tightest fit of anything here. Line-height stays at 1.08: the inline
+   Shopify glyph sits in a `.w` wrapper with overflow:hidden, and tightening
+   the line box any further clips the top of the bag. */
 .hero-title {
-  font-weight: 500; letter-spacing: -0.028em; line-height: 1.08;
+  font-weight: 460; letter-spacing: -0.038em; line-height: 1.08;
   font-size: clamp(2.3rem, 5.1vw, 4.7rem);
   padding-inline: clamp(0.5rem, 6vw, 6rem);
 }
+/* The one place green is still allowed to carry emphasis. Above the fold,
+   nothing beside it is clickable, and it is the loudest moment on the site. */
 .hero-title em { color: var(--accent); }
 .hero-glyph {
   display: inline-block; width: auto; height: 0.78em;
@@ -675,7 +760,9 @@ em { font-style: normal; }
 .bento-card:hover { border-color: var(--border-strong); transform: translateY(-4px); }
 .bento-card:hover::before { opacity: 1; }
 
-.bento-card h3 { font-size: 1.22rem; font-weight: 500; letter-spacing: -0.02em; margin-top: 0.4rem; }
+/* Card titles are the smallest thing on the scale, so they carry the most
+   weight and the loosest fit. */
+.bento-card h3 { font-size: 1.22rem; font-weight: 540; letter-spacing: -0.012em; margin-top: 0.4rem; }
 .bento-card p { color: var(--text-2); font-size: 0.9rem; line-height: 1.55; margin-top: 0.35rem; max-width: 40ch; }
 
 .b-tag {
@@ -883,9 +970,11 @@ em { font-style: normal; }
 .pc-h2 {
   margin-top: 0.9rem; max-width: 620px;
   font-size: clamp(2rem, 4.2vw, 3.5rem); font-weight: 500;
-  line-height: 1.1; letter-spacing: -0.03em;
+  line-height: 1.08; letter-spacing: -0.028em;
 }
-.pc-h2 em { font-family: var(--serif); font-style: italic; font-weight: 400; color: var(--accent); }
+/* The turn is inherited from `h2 em`. This rule used to re-declare the serif
+   italic and paint it green; both are now the system's job, and the green has
+   gone back to meaning "interactive". */
 .pc-lede {
   max-width: 520px;
   font-size: 1.06rem; line-height: 1.6; color: var(--text);
@@ -1156,7 +1245,17 @@ em { font-style: normal; }
   line-height: 1.05;
   margin-bottom: clamp(2.6rem, 5vw, 4.5rem);
 }
-.footer-display em { font-family: var(--font); font-weight: 400; color: rgba(255, 255, 255, 0.4); }
+/* The footer display is already set in the serif, so the turn here needs no
+   size compensation — it is the same face, changing posture. It used to drop
+   to the sans at 40% white, which read as the word being switched off rather
+   than emphasised, and put the largest type on the site at the bottom of the
+   contrast range. */
+.footer-display em {
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.022em;
+  padding-right: 0.04em;
+}
 
 .footer-grid {
   display: grid;
@@ -2224,7 +2323,13 @@ em { font-style: normal; }
   text-transform: uppercase; color: hsl(var(--csh) 65% 74%); margin: 0 0 1.5rem; }
 .cs-title {
   font-family: var(--serif); font-weight: 400;
-  font-size: clamp(2.6rem, 8vw, 5.6rem); line-height: 1.02; letter-spacing: -.03em;
+  font-size: clamp(2.6rem, 8vw, 5.6rem); line-height: 1.02;
+  /* A serif at display size wants a looser fit than the sans does; -0.03em
+     was borrowed from the sans headings and was closing the counters. These
+     titles are brand names and deliberately take no turn — a proper noun in
+     italic reads as a citation, as though we were quoting the client rather
+     than presenting them. */
+  letter-spacing: -0.022em;
   margin: 0; color: var(--text); text-wrap: balance;
 }
 .cs-lede { font-size: clamp(1.05rem, 1.7vw, 1.3rem); line-height: 1.6; color: var(--text-2);
@@ -3488,8 +3593,13 @@ em { font-style: normal; }
   width: 5px; height: 5px; border-radius: 50%;
   background: var(--accent); box-shadow: 0 0 10px rgba(67, 207, 156, 0.9);
 }
-.tech-h2 { max-width: 18ch; margin: 1.4rem auto 0; font-size: clamp(1.9rem, 3.6vw, 2.9rem); }
-.tech-h2 em { color: var(--accent); }
+/* Minor H2 — the smallest of the section headings, so it takes the most
+   weight and the loosest fit of them. */
+.tech-h2 {
+  max-width: 18ch; margin: 1.4rem auto 0;
+  font-size: clamp(1.9rem, 3.6vw, 2.9rem);
+  font-weight: 510; letter-spacing: -0.022em; line-height: 1.1;
+}
 .tech-sub {
   margin: 1.1rem auto 0; max-width: 56ch;
   color: var(--text-2); font-size: clamp(0.95rem, 1.2vw, 1.05rem); line-height: 1.65;
