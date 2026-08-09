@@ -1076,6 +1076,13 @@ window.addEventListener('load', function () {
   var DUR = 1150;   // fast — the number should land, not crawl
   var STAGGER = 110;
 
+  /* Zero every counter at parse time, not when the observer fires. The HTML
+     ships the real figure so crawlers and JS-disabled visitors read it, but
+     the observer only fires at 30% visibility — so zeroing inside start()
+     left the real number on screen for ~380ms during a slow scroll. Skipped
+     under reduced motion, where count() deliberately leaves it in place. */
+  if (!reduced) els.forEach(function (el) { el.textContent = '0'; });
+
   function count(el, delay) {
     var target = parseFloat(el.getAttribute('data-count'));
     if (!isFinite(target)) return;
@@ -1092,14 +1099,7 @@ window.addEventListener('load', function () {
     window.setTimeout(function () { requestAnimationFrame(frame); }, delay);
   }
 
-  /* Zero every counter up front. The HTML ships the real figure so crawlers
-     read it, which means the staggered ones would otherwise display it for up
-     to 330ms before snapping back to 0. Skipped under reduced motion, where
-     count() deliberately leaves the real number in place. */
-  function start() {
-    if (!reduced) els.forEach(function (el) { el.textContent = '0'; });
-    els.forEach(function (el, i) { count(el, i * STAGGER); });
-  }
+  function start() { els.forEach(function (el, i) { count(el, i * STAGGER); }); }
 
   if (!('IntersectionObserver' in window)) { start(); return; }
   var io = new IntersectionObserver(function (entries) {
