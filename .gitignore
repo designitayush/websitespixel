@@ -6,3 +6,11 @@
 !.env.example
 .vercel
 node_modules
+
+# Internal planning docs. vercel.json sets outputDirectory to ".", so the repo
+# root IS the deployment artifact — anything committed here is served publicly
+# at websitespixel.com/<path>. These contain pricing strategy, positioning,
+# audit findings and the client roster, so they must never be committed.
+docs/
+STACK.md
+DESIGN-INVENTORY.md
