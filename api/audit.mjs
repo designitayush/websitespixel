@@ -14,7 +14,7 @@
  *      FORM_MIN_ELAPSED_MS (optional, default 1200)
  */
 
-const TO = process.env.BOOKING_TO || 'teamwebsitespixel@gmail.com';
+const TO = process.env.BOOKING_TO || 'hello@websitespixel.com';
 const FROM = process.env.BOOKING_FROM || 'WebsitesPixel <onboarding@resend.dev>';
 const MIN_ELAPSED = Number(process.env.FORM_MIN_ELAPSED_MS) || 1200;
 const REVENUE = ['Under $10k', '$10k - $50k', '$50k - $250k', '$250k - $1M', '$1M+', 'Pre-launch'];

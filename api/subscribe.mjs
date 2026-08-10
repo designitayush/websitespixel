@@ -9,14 +9,14 @@
  *
  * Env
  *   RESEND_API_KEY             required
- *   BOOKING_TO                 team inbox         default teamwebsitespixel@gmail.com
+ *   BOOKING_TO                 team inbox         default hello@websitespixel.com
  *   BOOKING_FROM               verified sender    default Resend shared domain
  *   AIRTABLE_TOKEN             records PAT        optional
  *   AIRTABLE_BASE_ID           appXXXXXXXXXXXXXX  optional
  *   AIRTABLE_SUBSCRIBERS_TABLE table name         default Subscribers
  */
 
-const TO = process.env.BOOKING_TO || 'teamwebsitespixel@gmail.com';
+const TO = process.env.BOOKING_TO || 'hello@websitespixel.com';
 const FROM = process.env.BOOKING_FROM || 'WebsitesPixel <onboarding@resend.dev>';
 const AT_TOKEN = process.env.AIRTABLE_TOKEN || '';
 const AT_BASE = process.env.AIRTABLE_BASE_ID || '';
