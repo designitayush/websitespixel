@@ -26,6 +26,7 @@ const REQUIRED = [
    Worth printing so the build log says which defaults are in play. */
 const OPTIONAL = [
   'BOOKING_TO',
+  'CONTACT_TO',
   'BOOKING_TZ',
   'BOOKING_MINUTES',
   'AIRTABLE_BOOKINGS_TABLE',
