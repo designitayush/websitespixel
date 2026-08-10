@@ -1486,3 +1486,73 @@ window.addEventListener('load', function () {
 
   activate(cards[0]);
 })();
+
+/* Contact form. Isolated from the audit form and the booking flow on purpose:
+   both of those are live and must not be affected by anything here. Same shape
+   as the audit handler, three fields instead of five, posting to /api/contact
+   so a message arrives as a message rather than as an audit request. */
+(function () {
+  var form = document.getElementById('contact-form');
+  if (!form) return;
+  var opened = Date.now();
+  var submit = document.getElementById('contact-submit');
+  var status = document.getElementById('contact-status');
+  var done = document.getElementById('contact-done');
+
+  function showErrors(errors) {
+    form.querySelectorAll('.bf').forEach(function (f) { f.classList.remove('has-error'); });
+    form.querySelectorAll('.bf-err').forEach(function (e) { e.textContent = ''; });
+    var first = null;
+    Object.keys(errors).forEach(function (k) {
+      var slot = form.querySelector('[data-err="' + k + '"]');
+      if (!slot) return;
+      slot.textContent = errors[k];
+      slot.closest('.bf').classList.add('has-error');
+      if (!first) first = slot.closest('.bf').querySelector('input,select,textarea');
+    });
+    if (first) first.focus();
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    status.textContent = '';
+    status.classList.remove('is-bad');
+
+    var data = {
+      store: form.store.value, email: form.email.value, goal: form.goal.value,
+      company_url: form.company_url.value, elapsed: Date.now() - opened
+    };
+    var errs = {};
+    if (!data.store || data.store.trim().length < 4) errs.store = 'Which store should we look at?';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email)) errs.email = 'That email address does not look right.';
+    if (Object.keys(errs).length) { showErrors(errs); return; }
+
+    submit.disabled = true;
+    submit.classList.add('is-sending');
+    submit.querySelector('.bs-label').textContent = 'Sending';
+
+    fetch('/api/contact', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (b) {
+        return { ok: res.ok, status: res.status, body: b };
+      });
+    }).then(function (r) {
+      /* Same rule as the audit and booking forms: a bare 200 is not success. */
+      if (r.ok && r.body && r.body.submitted === true) {
+        form.querySelectorAll('.bf, .fa-form-h, .fa-submit, .gs-note').forEach(function (n) { n.hidden = true; });
+        done.hidden = false;
+        return;
+      }
+      if (r.status === 422 && r.body.errors) { showErrors(r.body.errors); return; }
+      throw new Error(r.body.error || 'Something went wrong.');
+    }).catch(function (err) {
+      status.textContent = err.message + ' You can also email hello@websitespixel.com directly.';
+      status.classList.add('is-bad');
+    }).then(function () {
+      submit.disabled = false;
+      submit.classList.remove('is-sending');
+      submit.querySelector('.bs-label').textContent = 'Send it';
+    });
+  });
+})();
