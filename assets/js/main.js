@@ -1036,8 +1036,21 @@ window.addEventListener('load', function () {
     submit.classList.add('is-sending');
     submit.querySelector('.bs-label').textContent = 'Sending';
 
-    fetch('/api/audit', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+    /* Someone who fills this in quickly is not a bot, but the server's timing
+       gate cannot tell the difference: anything under MIN_ELAPSED is refused,
+       which cost a real submitter their first click. Hold the request until
+       the threshold has passed instead of letting it be rejected. The sending
+       state is already applied above, so the click still feels instant, and
+       elapsed is measured at send time so the server sees the true figure.
+       The gate itself is deliberately untouched - it is the bot defence, and
+       a bot POSTing straight at the endpoint never runs any of this. The 1200
+       here mirrors the FORM_MIN_ELAPSED_MS default the endpoint applies. */
+    var wait = Math.max(0, 1200 - (Date.now() - opened));
+    new Promise(function (go) { setTimeout(go, wait); }).then(function () {
+      data.elapsed = Date.now() - opened;
+      return fetch('/api/audit', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+      });
     }).then(function (res) {
       return res.json().catch(function () { return {}; }).then(function (b) {
         return { ok: res.ok, status: res.status, body: b };
@@ -1054,6 +1067,7 @@ window.addEventListener('load', function () {
     }).catch(function (err) {
       status.textContent = err.message + ' You can also email teamwebsitespixel@gmail.com directly.';
       status.classList.add('is-bad');
+      status.scrollIntoView({ block: 'nearest' });
     }).then(function () {
       submit.disabled = false;
       submit.classList.remove('is-sending');
@@ -1531,8 +1545,21 @@ window.addEventListener('load', function () {
     submit.classList.add('is-sending');
     submit.querySelector('.bs-label').textContent = 'Sending';
 
-    fetch('/api/contact', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+    /* Someone who fills this in quickly is not a bot, but the server's timing
+       gate cannot tell the difference: anything under MIN_ELAPSED is refused,
+       which cost a real submitter their first click. Hold the request until
+       the threshold has passed instead of letting it be rejected. The sending
+       state is already applied above, so the click still feels instant, and
+       elapsed is measured at send time so the server sees the true figure.
+       The gate itself is deliberately untouched - it is the bot defence, and
+       a bot POSTing straight at the endpoint never runs any of this. The 1200
+       here mirrors the FORM_MIN_ELAPSED_MS default the endpoint applies. */
+    var wait = Math.max(0, 1200 - (Date.now() - opened));
+    new Promise(function (go) { setTimeout(go, wait); }).then(function () {
+      data.elapsed = Date.now() - opened;
+      return fetch('/api/contact', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+      });
     }).then(function (res) {
       return res.json().catch(function () { return {}; }).then(function (b) {
         return { ok: res.ok, status: res.status, body: b };
@@ -1549,6 +1576,7 @@ window.addEventListener('load', function () {
     }).catch(function (err) {
       status.textContent = err.message + ' You can also email hello@websitespixel.com directly.';
       status.classList.add('is-bad');
+      status.scrollIntoView({ block: 'nearest' });
     }).then(function () {
       submit.disabled = false;
       submit.classList.remove('is-sending');
