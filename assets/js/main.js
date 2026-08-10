@@ -1222,38 +1222,6 @@ window.addEventListener('load', function () {
   });
 })();
 
-/* Showcase tiles open their case study.
-
-   The original modal wiring sits inside the same branch that only runs when a
-   browser LACKS CSS scroll-driven animations, so on every modern browser these
-   eight tiles have been inert — clicking one did nothing at all. Rather than
-   revive a modal we cannot reach from here, each tile now navigates to its own
-   case study page, which is richer, linkable and indexable. The markup is
-   untouched, so hover states and the wall layout are exactly as they were. */
-(function () {
-  var stage = document.getElementById('sc-track');
-  if (!stage) return;
-  if (typeof window.openCase === 'function') return;   /* modal alive? leave it alone */
-
-  stage.addEventListener('click', function (e) {
-    var tile = e.target.closest('.sc-tile[data-project]');
-    if (!tile) return;
-    var slug = tile.getAttribute('data-project');
-    if (!slug) return;
-    e.preventDefault();
-    window.location.href = '/work/' + slug + '/';
-  });
-
-  /* Make the affordance honest for keyboard and assistive tech. */
-  [].slice.call(stage.querySelectorAll('.sc-tile[data-project]')).forEach(function (t) {
-    var name = t.getAttribute('data-project');
-    if (!t.getAttribute('aria-label')) {
-      t.setAttribute('aria-label', 'View the ' + name + ' case study');
-    }
-    t.style.cursor = 'pointer';
-  });
-})();
-
 /* Liquid glass: the specular highlight follows the cursor.
    Writes two CSS custom properties and nothing else — no layout reads
    inside the handler, and the paint stays on the compositor. Skipped

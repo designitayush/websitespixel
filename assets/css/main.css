@@ -487,6 +487,11 @@ h1 em, h2 em, .turn {
   aspect-ratio: var(--ar, 0.75);
   padding: 0; text-align: left; cursor: pointer;
 }
+/* These tiles were <button> and inherited the UA button font metrics. They are
+   anchors now so the caption would inherit the page's 16px and taller line box,
+   growing the .sc-m overlay by ~8px. Pinning both keeps the rendering identical.
+   Excludes .sc-frag, which stays a decorative div and never had these values. */
+.sc-tile:not(.sc-frag) { font-size: 13.3333px; line-height: normal; }
 .sc-tile.sc-abs { position: absolute; left: var(--x); top: var(--y); width: var(--w); }
 
 .sc-in {
