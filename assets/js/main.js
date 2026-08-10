@@ -1390,6 +1390,11 @@ window.addEventListener('load', function () {
   });
   /* Tapping the trigger on a hybrid device should toggle, not navigate away. */
   trigger.addEventListener('click', function (e) {
+    /* Below 992px the panel is display:none and open() bails at the same
+       breakpoint, so is-open could never become true and every click here was
+       swallowed - the Services item was a dead link between 901 and 991px.
+       Under that width it is a plain link, which is all it can usefully be. */
+    if (window.matchMedia && window.matchMedia('(max-width: 991px)').matches) return;
     if (window.matchMedia && window.matchMedia('(hover: none)').matches) return;
     if (!wrap.classList.contains('is-open')) { e.preventDefault(); open(); }
   });
