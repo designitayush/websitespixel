@@ -1022,10 +1022,17 @@ window.addEventListener('load', function () {
     status.textContent = '';
     status.classList.remove('is-bad');
 
+    /* Guarded reads, the same idiom the booking handler uses for its optional
+       phone field. A missing input makes form.<field> undefined, and reading
+       .value off it throws before fetch is ever called - no request, no error
+       message, nothing on screen. That is how removing a field silently breaks
+       this form, so every read is guarded rather than only the optional ones. */
     var data = {
-      store: form.store.value, email: form.email.value, name: form.name.value,
-      revenue: form.revenue.value, goal: form.goal.value,
-      company_url: form.company_url.value, elapsed: Date.now() - opened
+      store: form.store ? form.store.value : '',
+      email: form.email ? form.email.value : '',
+      goal: form.goal ? form.goal.value : '',
+      company_url: form.company_url ? form.company_url.value : '',
+      elapsed: Date.now() - opened
     };
     var errs = {};
     if (!data.store || data.store.trim().length < 4) errs.store = 'Which store should we look at?';
