@@ -12,7 +12,7 @@
  *
  * Env
  *   RESEND_API_KEY          required
- *   BOOKING_TO              team inbox             default teamwebsitespixel@gmail.com
+ *   BOOKING_TO              team inbox             default hello@websitespixel.com
  *   BOOKING_FROM            verified sender        default Resend shared domain
  *   BOOKING_TZ              business timezone      default Asia/Kolkata
  *   BOOKING_MINUTES         call length in minutes default 30
@@ -24,7 +24,7 @@
  *   AIRTABLE_BOOKINGS_TABLE table name             default Bookings
  */
 
-const TO = process.env.BOOKING_TO || 'teamwebsitespixel@gmail.com';
+const TO = process.env.BOOKING_TO || 'hello@websitespixel.com';
 const FROM = process.env.BOOKING_FROM || 'WebsitesPixel <onboarding@resend.dev>';
 const BIZ_TZ = process.env.BOOKING_TZ || 'Asia/Kolkata';
 const MINUTES = Number(process.env.BOOKING_MINUTES) || 30;

@@ -528,7 +528,7 @@
         }).catch(function (err) {
           /* Say what happened and leave a door open. */
           nlMsg.textContent = err.message +
-            ' Email teamwebsitespixel@gmail.com and we will add you by hand.';
+            ' Email hello@websitespixel.com and we will add you by hand.';
           nlMsg.classList.add('is-error');
         }).then(function () {
           btn.disabled = false;
@@ -941,7 +941,7 @@ window.addEventListener('load', function () {
         if (mailNote) {
           mailNote.hidden = r.body.confirmationSent !== false;
           mailNote.textContent = r.body.confirmationSent === false
-            ? 'Your slot is confirmed. The confirmation email is running late — if nothing arrives shortly, email teamwebsitespixel@gmail.com and we will resend it.'
+            ? 'Your slot is confirmed. The confirmation email is running late — if nothing arrives shortly, email hello@websitespixel.com and we will resend it.'
             : '';
         }
 
@@ -958,7 +958,7 @@ window.addEventListener('load', function () {
     }).catch(function (err) {
       /* Never fail silently: say what happened and give a way through. */
       status.textContent = err.message +
-        ' You can also email teamwebsitespixel@gmail.com directly.';
+        ' You can also email hello@websitespixel.com directly.';
       status.classList.add('is-bad');
     }).then(function () {
       submit.disabled = false;
@@ -1065,7 +1065,7 @@ window.addEventListener('load', function () {
       if (r.status === 422 && r.body.errors) { showErrors(r.body.errors); return; }
       throw new Error(r.body.error || 'Something went wrong.');
     }).catch(function (err) {
-      status.textContent = err.message + ' You can also email teamwebsitespixel@gmail.com directly.';
+      status.textContent = err.message + ' You can also email hello@websitespixel.com directly.';
       status.classList.add('is-bad');
       status.scrollIntoView({ block: 'nearest' });
     }).then(function () {
