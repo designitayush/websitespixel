@@ -24,6 +24,15 @@ const TO = process.env.CONTACT_TO || process.env.BOOKING_TO || 'hello@websitespi
 const FROM = process.env.BOOKING_FROM || 'WebsitesPixel <onboarding@resend.dev>';
 const MIN_ELAPSED = Number(process.env.FORM_MIN_ELAPSED_MS) || 1200;
 
+/* Same pair as api/audit.mjs: the auto-reply comes from a person, and replying
+   to it reaches the inbox the page displays. */
+const CLIENT_FROM = 'Ayush at WebsitesPixel <hello@websitespixel.com>';
+const CLIENT_REPLY_TO = 'hello@websitespixel.com';
+
+const SHELL = 'font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;' +
+  'max-width:600px;margin:0 auto;color:#111';
+const P = 'margin:0 0 16px;font-size:15px;line-height:1.65';
+
 const hits = new Map();
 function rateLimited(ip) {
   const now = Date.now();
@@ -38,6 +47,19 @@ const clean = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
 const esc = (v) => String(v).replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* Mirrors the helper in book.mjs and audit.mjs: never throws, always reports. */
+async function send(payload) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return { ok: false, status: 500, detail: 'RESEND_API_KEY is not set' };
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (res.ok) return { ok: true };
+  return { ok: false, status: 502, detail: await res.text() };
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -107,28 +129,59 @@ line-height:1.6;color:#111;white-space:pre-wrap">${esc(d.goal)}</p>` : ''}
 <p style="margin:22px 0 0;color:#999;font-size:12px">Submitted ${esc(new Date().toUTCString())}</p>
 </div>`;
 
-  const key = process.env.RESEND_API_KEY;
-  if (!key) {
+  if (!process.env.RESEND_API_KEY) {
     console.error('contact: RESEND_API_KEY is not set');
     return res.status(500).json({
       ok: false, submitted: false, code: 'not_configured',
       error: 'We could not send that. Please email us directly.',
     });
   }
-  const r = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: FROM, to: [TO], reply_to: d.email,
-      subject: `New message — ${d.store}`, html,
-    }),
+
+  /* Notification first. Everything below has already cleared the honeypot, the
+     timing gate and isEmail(). */
+  const r = await send({
+    from: FROM, to: [TO], reply_to: d.email,
+    subject: `New message — ${d.store}`, html,
   });
   if (!r.ok) {
-    console.error('contact delivery failed:', r.status, await r.text());
+    console.error('contact delivery failed:', r.status, r.detail);
     return res.status(502).json({
       ok: false, submitted: false, code: 'delivery_failed',
       error: 'We could not send that. Please email us directly.',
     });
   }
-  return res.status(200).json({ ok: true, submitted: true });
+
+  /* Then the acknowledgement, wrapped so it can only ever log. The message is
+     already in the inbox by the time this runs, so a failure here must not turn
+     a delivered message into an error the sender sees. */
+  const line = (t) => `<p style="${P}">${t}</p>`;
+  const clientHtml = `<div style="${SHELL}">
+${line('Hi,')}
+${line('Thanks for reaching out. Your message came straight to my inbox &mdash; not a shared queue or a ticket system.')}
+${line('I&rsquo;ll read it properly and come back to you personally within one working day, usually sooner.')}
+${line('If anything else comes to mind in the meantime, just reply here.')}
+${line('Ayush<br>WebsitesPixel')}
+</div>`;
+  const clientText = [
+    'Hi,',
+    'Thanks for reaching out. Your message came straight to my inbox - not a shared queue or a ticket system.',
+    "I'll read it properly and come back to you personally within one working day, usually sooner.",
+    'If anything else comes to mind in the meantime, just reply here.',
+    'Ayush\nWebsitesPixel',
+  ].join('\n\n');
+
+  let confirmationSent = false;
+  try {
+    const c = await send({
+      from: CLIENT_FROM, to: [d.email], reply_to: CLIENT_REPLY_TO,
+      subject: 'Got your message',
+      html: clientHtml, text: clientText,
+    });
+    confirmationSent = c.ok;
+    if (!c.ok) console.error('contact auto-reply failed:', c.status, c.detail);
+  } catch (err) {
+    console.error('contact auto-reply threw:', err && err.message);
+  }
+
+  return res.status(200).json({ ok: true, submitted: true, confirmationSent });
 }
