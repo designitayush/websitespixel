@@ -223,96 +223,13 @@
     }
 
     /* ---------- Case study modal ---------- */
-    var CASES = {
-      velle: {
-        tag: 'Skincare · Replatform', title: 'Velle Skin', loc: 'London, United Kingdom',
-        imgs: ['velle-skincare-studio', 'velle-lab-detail'],
-        overview: 'Velle outgrew a patchwork WooCommerce build that buckled on every launch day. We replatformed to Shopify, redesigned the funnel around their hero serum and rebuilt email from scratch. Six months later the store had done £1.2M.',
-        services: ['Shopify build', 'UX & UI design', 'Platform migration', 'CRO', 'Klaviyo'],
-        metrics: [['+38%', 'conversion rate'], ['0.9s', 'LCP on mobile'], ['£1.2M', 'revenue, first 6 months']],
-        before: '3.8s mobile loads, 1.1% conversion and a checkout that leaked at the shipping step.',
-        after: 'Sub-second loads, 1.5% conversion and bundles quietly lifting order value 19%.',
-        quote: 'Conversion is up 38% and the site finally feels like the brand we charge premium prices for.',
-        by: 'Priya Nair, Ecommerce Director'
-      },
-      aurelo: {
-        tag: 'Fine jewelry · Custom build', title: 'Aurelo', loc: 'Dubai, UAE',
-        imgs: ['aurelo-fine-jewelry', 'aurelo-atelier-gold'],
-        overview: 'Aurelo sells pieces that start at four figures, and their template store undersold every one of them. We built an editorial storefront with storytelling product pages, localized currencies and a concierge flow for high-intent buyers.',
-        services: ['Custom theme', 'PDP storytelling', 'Localization', 'Speed optimization'],
-        metrics: [['+27%', 'conversion rate'], ['+52%', 'time on site'], ['$860K', 'influenced revenue']],
-        before: 'A generic theme that made four-figure pieces look like fast fashion.',
-        after: 'An editorial experience where the product photography finally does the selling.',
-        quote: 'The store now feels like walking into our flagship. Clients mention it on calls.',
-        by: 'Rania Al-Masri, Founder'
-      },
-      fjord: {
-        tag: 'Outdoor apparel · Migration', title: 'Fjord Supply Co.', loc: 'Oslo, Norway',
-        imgs: ['fjord-nordic-outdoors', 'fjord-mountain-gear'],
-        overview: 'A decade of Magento SEO equity and a platform bill that kept climbing. We migrated Fjord to Shopify with a full URL and content map, so rankings arrived intact, then rebuilt the theme for speed.',
-        services: ['Magento migration', 'SEO migration', 'Theme development', 'Analytics'],
-        metrics: [['+140%', 'organic traffic YoY'], ['0', 'rankings lost'], ['1.1s', 'LCP on mobile']],
-        before: 'Magento maintenance eating a developer week every month, 3.5s loads.',
-        after: 'Zero-downtime cutover, three times faster and organic traffic more than doubled.',
-        quote: 'The migration was the thing I dreaded most. We lost zero rankings and the site is three times faster.',
-        by: 'Jonas Viken, CEO'
-      },
-      casa: {
-        tag: 'Home & living · Shopify Plus', title: 'Casa Márlo', loc: 'Valencia, Spain',
-        imgs: ['casa-marlo-interiors', 'casa-marlo-terrace'],
-        overview: 'Casa Márlo sells to homeowners and to 200 interior studios, and the two channels fought each other constantly. We moved them to Shopify Plus with a wholesale storefront, then ran CRO sprints on retail.',
-        services: ['Shopify Plus', 'B2B wholesale', 'CRO sprints', 'ERP integration'],
-        metrics: [['3.4x', 'blended ROAS'], ['+31%', 'retail conversion'], ['200+', 'B2B accounts served']],
-        before: 'One storefront straining to serve two very different buyers.',
-        after: 'Retail and wholesale on one stack, each with its own funnel and pricing.',
-        quote: 'Their CRO sprints paid for the whole build inside a quarter.',
-        by: 'Lucía Ferrán, Co-founder'
-      },
-      kanso: {
-        tag: 'Coffee · Subscriptions', title: 'Kanso Coffee', loc: 'Kyoto, Japan',
-        imgs: ['kanso-coffee-craft', 'kanso-roastery-morning'],
-        overview: 'Kanso had a beautiful product and a subscription program bleeding 12% of members a month. We rebuilt subscriptions with flexible skips, gifting and dunning flows, and gave the brand a store that matches the roastery.',
-        services: ['Subscription build', 'Retention flows', 'Custom Shopify app', 'Store design'],
-        metrics: [['71%', 'retention at month 6'], ['4%', 'monthly churn, from 12%'], ['+33%', 'subscriber LTV']],
-        before: 'Rigid subscriptions people cancelled instead of pausing.',
-        after: 'Skip, swap and gift in two taps. Cancellations became pauses.',
-        quote: 'Subscriptions were churning at 12% a month. They got us to 4% with flows I didn’t know were possible.',
-        by: 'Kenji Watanabe, Founder'
-      },
-      bloomfield: {
-        tag: 'Wellness · Retention', title: 'Bloomfield Botanics', loc: 'Portland, United States',
-        imgs: ['bloomfield-botanic-glow', 'bloomfield-greenhouse'],
-        overview: 'Paid traffic was getting expensive and email was an afterthought. We rebuilt the store for speed, then built a Klaviyo program around first-purchase education. Email now carries almost a third of revenue.',
-        services: ['Klaviyo program', 'Speed optimization', 'CRO', 'Analytics & tracking'],
-        metrics: [['31%', 'of revenue from email'], ['96', 'mobile Lighthouse score'], ['+22%', 'repeat purchase rate']],
-        before: 'Two campaign emails a month and a 5-second mobile load.',
-        after: 'Eleven automated flows and a store that loads before doubt sets in.',
-        quote: 'They rebuilt our store in six weeks and email went from an afterthought to 31% of revenue.',
-        by: 'Amara Okafor, Founder'
-      },
-      nou: {
-        tag: 'Design goods · New build', title: 'Nou Studio', loc: 'Copenhagen, Denmark',
-        imgs: ['nou-studio-objects', 'nou-studio-editorial'],
-        overview: 'Nou sells small-batch objects from Danish designers and needed a store as considered as the products. We built a catalogue-style Shopify theme with editorial collections and a checkout that stays out of the way.',
-        services: ['Store design', 'Theme development', 'Editorial collections', 'Analytics'],
-        metrics: [['+41%', 'conversion rate'], ['2.1x', 'AOV on collections'], ['1.0s', 'LCP on mobile']],
-        before: 'A generic grid theme that flattened every product into a thumbnail.',
-        after: 'A catalogue people browse like a magazine, with checkout two taps away.',
-        quote: 'The store finally feels like our studio. Sales followed.',
-        by: 'Mette Andersen, Founder'
-      },
-      oro: {
-        tag: 'Watches · Replatform', title: 'Oro Fino', loc: 'Milan, Italy',
-        imgs: ['oro-fino-atelier', 'oro-fino-detail'],
-        overview: 'Oro Fino sells restored vintage watches with four-figure price tags. We replatformed them to Shopify with a provenance page for every piece, concierge checkout and localized duties for EU and US collectors.',
-        services: ['Replatform', 'PDP storytelling', 'Localization', 'CRO'],
-        metrics: [['+33%', 'conversion rate'], ['+58%', 'time on site'], ['€940K', 'influenced revenue']],
-        before: 'A marketplace-listing feel that undercut four-figure trust.',
-        after: 'Provenance-first product pages that sell the story before the price.',
-        quote: 'Collectors now email us about the website before the watches.',
-        by: 'Luca Ferretti, Founder'
-      }
-    };
+    /* No case data on purpose. The eight homepage tiles are concept studies,
+       and the data that used to live here gave them invented metrics and
+       client quotes. With CASES empty, populateCase() returns false,
+       openCase() exits early without preventDefault, and each tile's own
+       href takes the visitor to its honest /work/<slug>/ concept page.
+       Add an entry only for a real client, with real numbers. */
+    var CASES = {};
 
     var CASE_META = {
       velle: { url: 'velleskin.co.uk', pal: ['#f2eee7', '#2b2b26', '#5c7050'] },
