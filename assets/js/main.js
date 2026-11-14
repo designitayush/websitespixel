@@ -201,14 +201,41 @@
       });
     });
 
-    /* ---------- Marquees: duplicate groups for seamless loops ---------- */
+    /* ---------- Marquees: duplicate groups for seamless loops ----------
+       The loop slides the track by -50%, so half the track must cover the
+       viewport or the right edge runs empty on wide screens (eight logos are
+       ~1,750px). Add copies in pairs until it does, and stretch the duration
+       by the same factor so the logos keep the same speed. With two sets this
+       is exactly the old behaviour. Under reduced motion the CSS stops the
+       loop and wraps the row, so only the one original copy is added. */
     var mtrack = document.getElementById('marquee-track');
     if (mtrack) {
       var group = mtrack.querySelector('.marquee-group');
       if (group) {
-        var clone = group.cloneNode(true);
-        clone.setAttribute('aria-hidden', 'true');
-        mtrack.appendChild(clone);
+        var addSet = function () {
+          var clone = group.cloneNode(true);
+          clone.setAttribute('aria-hidden', 'true');
+          mtrack.appendChild(clone);
+        };
+        addSet();
+        if (!reduced) {
+          var fillMarquee = function () {
+            var setW = group.offsetWidth;
+            if (!setW) return;
+            var need = Math.max(2, Math.ceil(window.innerWidth / setW) * 2);
+            while (mtrack.children.length < need) addSet();
+            var base = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--marquee-dur')) || 38;
+            var dur = (base * mtrack.children.length / 2) + 's';
+            if (mtrack.style.animationDuration !== dur) mtrack.style.animationDuration = dur;
+          };
+          fillMarquee();
+          /* Top up on widen; never trim, which would jump the loop. */
+          var mPending;
+          window.addEventListener('resize', function () {
+            clearTimeout(mPending);
+            mPending = setTimeout(fillMarquee, 250);
+          });
+        }
       }
     }
 
