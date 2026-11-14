@@ -3723,7 +3723,7 @@ h1 em, h2 em, .turn {
    the "See everything included" disclosure, a quiet lift on the recommended
    plan, and the small pieces the pricing page needs around the cards. */
 .pr-eyebrow { margin: 0 0 .55rem; font-family: var(--mono); font-size: .7rem;
-  letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
+  letter-spacing: .1em; text-transform: uppercase; color: var(--text-2); }
 .pr-head { margin: .6rem 0 0; color: var(--text); font-size: 1.02rem; line-height: 1.5; font-weight: 500;
   text-wrap: balance; }
 .pr-price b small { font-size: .42em; font-weight: 400; letter-spacing: 0; color: var(--text-2); margin-left: .12rem; }
@@ -3754,7 +3754,7 @@ h1 em, h2 em, .turn {
   justify-content: center; gap: .6rem 1.8rem; }
 .pr-assure li { position: relative; padding-left: 1.4rem; font-size: .9rem; color: var(--text-2); }
 .pr-assure li::before { content: '\2713'; position: absolute; left: 0; color: var(--accent); font-size: .82rem; }
-.pr-foot { text-align: center; max-width: 68ch; margin-inline: auto; }
+.pr-foot { text-align: center; max-width: 68ch; margin-inline: auto; color: var(--text-2); } /* text-3 measured 3.0:1 */
 
 .pr-fit { display: block; transition: background .3s var(--ease); }
 .pr-fit:hover { background: var(--surface); }
