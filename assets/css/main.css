@@ -3780,3 +3780,7 @@ h1 em, h2 em, .turn {
    (position:absolute, §04) and drops the arrow onto a second line under the
    label on every filled arrow button. Restore the intended placement. */
 .btn-primary.btn-arrow > .arr2 { position: absolute; }
+
+/* Growth page: price line in the hero, sub-heading between the two grids. */
+.gs-price { border-top: 0; padding-top: 0; margin-top: 1.6rem; }
+.gs-sub-h { margin-top: clamp(2.6rem, 5vw, 3.4rem); }
