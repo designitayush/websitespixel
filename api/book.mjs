@@ -48,8 +48,12 @@ const AT_BOOKINGS = process.env.AIRTABLE_BOOKINGS_TABLE || 'Bookings';
 const BRAND = 'WebsitesPixel';
 const SITE = 'https://websitespixel.com';
 
-const SERVICES = ['Shopify Store', 'Shopify Plus', 'CRO', 'Migration',
-  'Redesign', 'Custom Development', 'Retainer', 'Other'];
+const SERVICES = ['Shopify Launch', 'Shopify Rebuild', 'Shopify Growth Subscription',
+  'Custom Shopify Development', 'SEO & Marketing', 'Technical Support', 'Other',
+  /* Pre-2026-11 options, still accepted so a page cached before the pricing
+     change can never be refused. */
+  'Shopify Store', 'Shopify Plus', 'CRO', 'Migration', 'Redesign', 'Custom Development', 'Retainer'];
+const BUDGETS = ['Under $1,500', '$1,500–$2,000', '$2,000–$5,000', '$5,000+', 'Monthly plan ($699/mo)'];
 
 /* A booking is small and infrequent, so an in-memory window is enough to blunt
    floods. Serverless instances recycle, which is fine: this is a speed bump,
@@ -164,6 +168,7 @@ function validate(b) {
     company: clean(b.company, 160),
     website: clean(b.website, 200),
     service: clean(b.service, 60),
+    budget: clean(b.budget, 40),
     project: clean(b.project, 4000),
     utm: clean(b.utm, 300),
     referrer: clean(b.referrer, 300),
@@ -174,7 +179,10 @@ function validate(b) {
   if (out.name.length < 2) errors.name = 'Tell us your name.';
   if (!isEmail(out.email)) errors.email = 'That email address does not look right.';
   if (out.service && !SERVICES.includes(out.service)) errors.service = 'Unknown service.';
-  if (out.project.length < 10) errors.project = 'A sentence or two about the project, please.';
+  if (out.budget && !BUDGETS.includes(out.budget)) errors.budget = 'Unknown budget.';
+  /* The form labels the project field optional, so an empty one is accepted.
+     It used to demand ten characters, which bounced visitors who believed
+     the label. */
   return { out, errors };
 }
 
@@ -199,13 +207,15 @@ function internalTemplate(d, when, ref, stamp) {
     '<p style="margin:0 0 20px;color:#555;font-size:15px">' + esc(when) + '</p>' +
     '<table style="border-collapse:collapse;width:100%">' +
     row('Email', d.email) + row('Phone', d.phone) + row('Company', d.company) +
-    row('Website', d.website) + row('Service', d.service) +
+    row('Website', d.website) + row('Service', d.service) + row('Budget', d.budget) +
     row('Their timezone', d.timezone) + row('Source', d.utm || d.referrer || 'direct') +
     row('Landing page', d.landing) +
     '</table>' +
-    '<p style="margin:22px 0 6px;color:#6b6b70;font-size:13px">Project</p>' +
-    '<p style="margin:0;padding:14px 16px;background:#f5f5f7;border-radius:10px;' +
-    'font-size:14px;line-height:1.65;white-space:pre-wrap">' + esc(d.project) + '</p>' +
+    (d.project
+      ? '<p style="margin:22px 0 6px;color:#6b6b70;font-size:13px">Project</p>' +
+        '<p style="margin:0;padding:14px 16px;background:#f5f5f7;border-radius:10px;' +
+        'font-size:14px;line-height:1.65;white-space:pre-wrap">' + esc(d.project) + '</p>'
+      : '') +
     '<p style="margin:22px 0 0;font-size:14px">Reply to this email and it goes straight to ' +
     esc(d.name.split(' ')[0]) + '.</p>' +
     '<p style="margin:14px 0 0;color:#9a9aa0;font-size:12px">Submitted ' + esc(stamp) + '</p>' +
@@ -326,6 +336,7 @@ async function persist(record) {
       Company: record.company,
       Website: record.website,
       Service: record.service,
+      Budget: record.budget,
       Project: record.project,
       Slot: slot,
       Start: record.startUtc,
@@ -434,7 +445,7 @@ export default async function handler(req, res) {
     date: out.date, dateISO: out.dateISO, time: out.time,
     businessTimezone: BIZ_TZ, clientTimezone: out.timezone,
     name: out.name, email: out.email, phone: out.phone, company: out.company,
-    website: out.website, service: out.service, project: out.project,
+    website: out.website, service: out.service, budget: out.budget, project: out.project,
     utm: out.utm, referrer: out.referrer, landing: out.landing, ip: ip,
   });
 

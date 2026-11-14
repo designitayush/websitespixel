@@ -242,7 +242,11 @@
   <div class="container hero-inner">
     <p class="eyebrow hero-eyebrow">A Shopify Design &amp; Development Studio<span class="vbadge"><img src="assets/logos/shopify-verified-green.png" alt="Shopify verified" width="72" height="72" decoding="async"></span></p>
     <h1 class="hero-title split-words">We build <span class="w"><span class="wi"><img class="hero-glyph" src="assets/logos/shopify-bag.svg" alt="" width="152" height="192"></span></span> Shopify stores<br class="hero-br"> that <em>sell.</em></h1>
-    <p class="hero-sub">Conversion-obsessed design and serious engineering for ecommerce brands that treat their store like their best salesperson.</p>
+    <p class="hero-sub">We design, develop, and grow Shopify stores &mdash; custom development, conversion optimization, SEO, and ongoing ecommerce marketing, under one roof.</p>
+    <div class="gs-cta-row hero-ctas">
+      <a class="btn btn-primary btn-lg btn-arrow" href="#contact">Book a Free Strategy Call<span class="arr2" aria-hidden="true">&rarr;</span></a>
+      <a class="btn btn-ghost btn-lg" href="/pricing/">Explore Our Pricing</a>
+    </div>
     <p class="hero-proof"><span class="hp-stars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span><b>5.0</b> from <b>52</b> <a href="[[CONFIRM: partner profile URL]]" target="_blank" rel="noopener">verified Shopify Partner reviews</a> [[CONFIRM: 5.0 from 52]] [[CONFIRM: partner profile URL]]</p>
     <nav class="hero-cats" aria-label="What we do">
       <a href="/services/new-store-design/"><b>New Projects</b><span>Design &amp; build Shopify stores</span></a>
@@ -480,6 +484,38 @@
         <li>Headless &amp; Hydrogen</li><li>Custom Shopify apps</li><li>Subscriptions</li><li>Analytics &amp; tracking</li><li>UX audits</li><li>Integrations</li><li>Performance audits</li><li>B2B wholesale</li>
       </ul>
     </div>
+  </div>
+</section>
+
+<!-- ============ PRICING PREVIEW ============ -->
+<section class="pp" id="pricing" aria-labelledby="pp-heading">
+  <div class="container">
+    <p class="eyebrow"><span class="px" aria-hidden="true"></span>Pricing</p>
+    <h2 class="h2" id="pp-heading">Three ways to work with us,<br><em>priced up front.</em></h2>
+    <div class="pr-grid">
+      <article class="pr-card" style="--csh:192">
+        <p class="pr-eyebrow">For new brands</p>
+        <h3 class="pr-name">Shopify Launch</h3>
+        <p class="pr-head">Launch your ecommerce business with confidence.</p>
+        <p class="pr-price"><b>$1,499</b><i>One-time project fee</i></p>
+        <a class="btn btn-ghost pr-cta" href="/?plan=launch#contact" data-plan="launch">Launch My Shopify Store</a>
+      </article>
+      <article class="pr-card" style="--csh:284">
+        <p class="pr-eyebrow">For existing stores</p>
+        <h3 class="pr-name">Shopify Rebuild</h3>
+        <p class="pr-head">Give your existing store the upgrade it deserves.</p>
+        <p class="pr-price"><b>$1,999</b><i>One-time project fee</i></p>
+        <a class="btn btn-ghost pr-cta" href="/?plan=rebuild#contact" data-plan="rebuild">Rebuild My Shopify Store</a>
+      </article>
+      <article class="pr-card is-pop" style="--csh:152"><span class="pr-pop">Recommended</span>
+        <p class="pr-eyebrow">For brands ready to scale</p>
+        <h3 class="pr-name">Shopify Growth</h3>
+        <p class="pr-head">Your complete Shopify growth partner.</p>
+        <p class="pr-price"><b>$699<small>/month</small></b><i>Monthly subscription</i></p>
+        <a class="btn btn-primary pr-cta" href="/?plan=growth#contact" data-plan="growth">Start My Shopify Growth Plan</a>
+      </article>
+    </div>
+    <p class="pp-foot">Fixed project prices for builds, month-to-month for Growth. <a href="/pricing/">See full pricing and everything included</a></p>
   </div>
 </section>
 
@@ -766,19 +802,27 @@
             <p class="bf"><label for="bk-email">Email<span aria-hidden="true">*</span></label>
               <input id="bk-email" name="email" type="email" autocomplete="email" required>
               <span class="bf-err" data-err="email"></span></p>
-            <p class="bf"><label for="bk-website">Store URL <em>so we can look before we speak</em></label>
+            <p class="bf bf-wide"><label for="bk-website">Store URL <em>so we can look before we speak</em></label>
               <input id="bk-website" name="website" type="url" inputmode="url" placeholder="yourstore.com"></p>
-            <p class="bf"><label for="bk-service">Service of interest</label>
+            <p class="bf"><label for="bk-service">What do you need?</label>
               <select id="bk-service" name="service">
               <option value="">Not sure yet</option>
-              <option value="Shopify Store">Shopify Store</option>
-              <option value="Shopify Plus">Shopify Plus</option>
-              <option value="CRO">CRO</option>
-              <option value="Migration">Migration</option>
-              <option value="Redesign">Redesign</option>
-              <option value="Custom Development">Custom Development</option>
-              <option value="Retainer">Retainer</option>
+              <option value="Shopify Launch">Shopify Launch</option>
+              <option value="Shopify Rebuild">Shopify Rebuild</option>
+              <option value="Shopify Growth Subscription">Shopify Growth Subscription</option>
+              <option value="Custom Shopify Development">Custom Shopify Development</option>
+              <option value="SEO &amp; Marketing">SEO &amp; Marketing</option>
+              <option value="Technical Support">Technical Support</option>
               <option value="Other">Other</option>
+              </select></p>
+            <p class="bf"><label for="bk-budget">Budget <em>optional</em></label>
+              <select id="bk-budget" name="budget">
+              <option value="">Not sure yet</option>
+              <option value="Under $1,500">Under $1,500</option>
+              <option value="$1,500–$2,000">$1,500&ndash;$2,000</option>
+              <option value="$2,000–$5,000">$2,000&ndash;$5,000</option>
+              <option value="$5,000+">$5,000+</option>
+              <option value="Monthly plan ($699/mo)">Monthly plan ($699/mo)</option>
               </select></p>
             <p class="bf bf-wide"><label for="bk-project">Anything we should know? <em>optional</em></label>
               <textarea id="bk-project" name="project" rows="3"

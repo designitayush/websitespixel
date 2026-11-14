@@ -23,6 +23,8 @@
 const TO = process.env.CONTACT_TO || process.env.BOOKING_TO || 'hello@websitespixel.com';
 const FROM = process.env.BOOKING_FROM || 'WebsitesPixel <onboarding@resend.dev>';
 const MIN_ELAPSED = Number(process.env.FORM_MIN_ELAPSED_MS) || 1200;
+const SERVICES = ['Shopify Launch', 'Shopify Rebuild', 'Shopify Growth Subscription',
+  'Custom Shopify Development', 'SEO & Marketing', 'Technical Support', 'Other'];
 
 /* Same pair as api/audit.mjs: the auto-reply comes from a person, and replying
    to it reaches the inbox the page displays. */
@@ -108,8 +110,12 @@ export default async function handler(req, res) {
     store: clean(body.store, 200),
     email: clean(body.email, 160),
     goal: clean(body.goal, 2000),
+    service: clean(body.service, 60),
   };
   const errors = {};
+  /* Optional, and only ever shown to us, so an unexpected value is dropped
+     rather than bouncing a real enquiry. */
+  if (!SERVICES.includes(d.service)) d.service = '';
   if (d.store.length < 4) errors.store = 'Which store should we look at?';
   if (!isEmail(d.email)) errors.email = 'That email address does not look right.';
   if (Object.keys(errors).length) {
@@ -121,7 +127,7 @@ export default async function handler(req, res) {
   const html = `<div style="font-family:ui-sans-serif,system-ui,sans-serif;max-width:620px">
 <h2 style="margin:0 0 16px;font-size:19px;color:#111">New contact message</h2>
 <table style="border-collapse:collapse;font-size:14px;width:100%">
-${row('Store', d.store)}${row('Email', d.email)}
+${row('Store', d.store)}${row('Email', d.email)}${row('Service', d.service)}
 </table>
 ${d.goal ? `<p style="margin:18px 0 6px;color:#666;font-size:13px">What is going wrong</p>
 <p style="margin:0;padding:14px 16px;background:#f6f6f7;border-radius:8px;font-size:14px;

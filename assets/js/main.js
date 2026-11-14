@@ -652,6 +652,24 @@ window.addEventListener('load', function () {
   var form = document.getElementById('book-form');
   if (!form) return;
 
+  /* Plan buttons (pricing page, homepage preview) link to /?plan=<key>#contact.
+     Pre-select that plan so the visitor never has to say it twice. On the
+     homepage itself, do it in place rather than reloading the page. */
+  var PLAN_SERVICE = { launch: 'Shopify Launch', rebuild: 'Shopify Rebuild', growth: 'Shopify Growth Subscription' };
+  function pickPlan(key) {
+    if (PLAN_SERVICE[key] && form.service) form.service.value = PLAN_SERVICE[key];
+  }
+  try { pickPlan(new URLSearchParams(window.location.search).get('plan')); } catch (err) {}
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[data-plan]') : null;
+    if (!a || a.pathname !== window.location.pathname) return;
+    e.preventDefault();
+    pickPlan(a.getAttribute('data-plan'));
+    var target = document.getElementById('contact');
+    if (target) target.scrollIntoView();
+    if (window.history && history.replaceState) history.replaceState(null, '', '#contact');
+  });
+
   var SLOTS = ['09:30', '10:00', '10:30', '11:00', '11:30',
                '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
   var MONTHS = ['January','February','March','April','May','June',
@@ -834,7 +852,8 @@ window.addEventListener('load', function () {
       referrer: WPCTX.referrer, landing: WPCTX.landing,
       name: form.name.value, email: form.email.value, phone: form.phone ? form.phone.value : '',
       company: form.company ? form.company.value : '', website: form.website.value,
-      service: form.service.value, project: form.project.value,
+      service: form.service.value, budget: form.budget ? form.budget.value : '',
+      project: form.project.value,
       timezone: visitorZone(),
       company_url: form.company_url.value, elapsed: Date.now() - opened
     };
@@ -1458,6 +1477,7 @@ window.addEventListener('load', function () {
 
     var data = {
       store: form.store.value, email: form.email.value, goal: form.goal.value,
+      service: form.service ? form.service.value : '',
       company_url: form.company_url.value, elapsed: Date.now() - opened
     };
     var errs = {};
