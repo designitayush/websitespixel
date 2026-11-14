@@ -9,8 +9,9 @@ Hours: 7am-1pm ET weekdays, reply within one working day.
 ## What we do
 Shopify store design, development, migration, conversion optimisation,
 speed, SEO, email and retention, automation and ongoing maintenance.
-Work is fixed-price, agreed in writing before it starts, with one named
-person the client messages directly.
+Builds are fixed-price, agreed in writing before they start; ongoing work
+runs on the monthly Shopify Growth plan. One named person the client
+messages directly.
 
 ## Services
 New Store Design & Build - https://websitespixel.com/services/new-store-design/
@@ -24,10 +25,11 @@ Store Care & Growth Plans - https://websitespixel.com/services/store-care/
 All services: https://websitespixel.com/services/
 
 ## Pricing
-Launch - from $3,500 fixed, 4-6 weeks. First real store.
-Rebuild - from $6,500 fixed, 6-8 weeks. Existing store not converting.
-Grow - from $1,200 per month. Ongoing improvement.
+Shopify Launch - $1,499, one-time project fee, 4-6 weeks. First real store. 30 days post-launch support.
+Shopify Rebuild - $1,999, one-time project fee, 6-8 weeks. Existing store that underperforms. 30 days post-launch support.
+Shopify Growth - $699/month, monthly subscription. Up to 15 hours of agreed work a month across development, store management, SEO, marketing support, CRO and analytics. Cancel any month.
 Full detail: https://websitespixel.com/pricing/
+Shopify Growth plan detail: https://websitespixel.com/growth-subscription/
 
 ## Client work
 Beauty Ink Essex - beauty and aesthetics, landing page and booking site, 2026 - https://websitespixel.com/work/beauty-ink-essex/
