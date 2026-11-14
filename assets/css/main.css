@@ -3773,3 +3773,10 @@ h1 em, h2 em, .turn {
 .pp .pr-grid { margin-top: clamp(2.4rem, 4vw, 3.2rem); }
 .pp-foot { margin: 2rem 0 0; text-align: center; font-size: .95rem; color: var(--text-2); }
 .pp-foot a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ============ 46 · FIX: ARROW ON FILLED BUTTONS ============ */
+/* §21's glass rule `.btn-primary > :not(.lg-sheen):not(.lg-ripple)` sets
+   position:relative on every child, which outranks `.btn-arrow .arr2`
+   (position:absolute, §04) and drops the arrow onto a second line under the
+   label on every filled arrow button. Restore the intended placement. */
+.btn-primary.btn-arrow > .arr2 { position: absolute; }
